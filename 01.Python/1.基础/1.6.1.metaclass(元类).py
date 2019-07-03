@@ -405,3 +405,19 @@ __metaclass__ 属性
     当然了，其实在99%的时间里你根本就不需要动态修改类 :D
 
 
+范例(使用元类实现单例)：
+    class Singleton(type):
+        # 每次 new MyClass类 时都会执行， 且首参数 cls 是 MyClass类 而不是 MyClass类实例(因为这是元类)。
+        def __call__(cls, *args, **kw):
+            if not hasattr(cls, '_instance'):
+                cls._instance = super(Singleton, cls).__call__(*args, **kw)
+            return cls._instance
+
+    # py2.x 的元类继承写法
+    class MyClass(object):
+        __metaclass__ = Singleton
+
+    # py3.x 的元类继承写法
+    class MyClass(object, metaclass = Singleton):
+        pass
+

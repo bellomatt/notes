@@ -135,14 +135,15 @@ Python单例模式的实现方法
 
 
 ### 方法4 ###
-  #方法4:使用__metaclass__（元类）的高级python用法。 注意只有 py2.x 可行， py3.x 不行。
+  #方法4:使用 __metaclass__（元类）的高级python用法。
     #本质上是方法2的升级（或者说高级）版
     class Singleton(type):
         # __init__ 会先于 __call__ 执行， 且首参数 cls 是 MyClass类 而不是 MyClass类实例(因为这是元类)。只在定义 MyClass类 时执行一次，后续不再执行。
-        # 这里的 __init__ 是多余的，留着仅供参考
+        ''' # 这里的 __init__ 是多余的，留着仅供参考
         def __init__(cls, name, bases, dct):
             super(Singleton, cls).__init__(name, bases, dct)
             cls._instance = None
+        '''
 
         # 每次 new MyClass类 时都会执行， 且首参数 cls 是 MyClass类 而不是 MyClass类实例(因为这是元类)。
         def __call__(cls, *args, **kw):
@@ -150,10 +151,16 @@ Python单例模式的实现方法
                 cls._instance = super(Singleton, cls).__call__(*args, **kw)
             return cls._instance
 
+    # py2.x 的元类继承写法
     class MyClass(object):
         __metaclass__ = Singleton
         def __init__(self):
-            print('------init ------') # 用来判断执行了多少次 init 函数
+            print('------ init ------') # 用来判断执行了多少次 init 函数
+
+    # py3.x 的元类继承写法
+    class MyClass(object, metaclass = Singleton):
+        def __init__(self):
+            print('------ init ------') # 用来判断执行了多少次 init 函数
 
     class MyClass2(MyClass):
         pass
