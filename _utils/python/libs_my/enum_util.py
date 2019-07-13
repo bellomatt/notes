@@ -92,6 +92,10 @@ Updated on 2016/9/29
         # 枚举类._items 返回 [(值,说明), (值,说明)]
 
 '''
+import sys
+PY2 = sys.version_info[0] == 2
+PY3 = sys.version_info[0] == 3
+
 
 class ConstType(type):
     def __new__(cls, name, bases, attrs):
@@ -127,15 +131,20 @@ class ConstType(type):
         obj._labels = _labels
         obj._labels_to_values = _labels_to_values
         obj._attrs = _attrs
-        obj._items = sorted(_attrs.iteritems(), key=lambda (k,v): k)
+        obj._items = sorted(_attrs.items(), key=lambda k: k[0])
         return obj
 
     def __call__(cls, *args, **kw):
         return cls._items
 
 
-class Const(object):
-    __metaclass__ = ConstType
+if PY2:
+    class Const(object):
+        __metaclass__ = ConstType
+elif PY3:
+    basestring = unicode = str
+    # class Const(object, metaclass=ConstType): pass  # 这样写，py2编译时会报错。
+    Const = ConstType('Const', (object,), {})
 
 
 # 布尔值是最常用的枚举，所以这里先写一个
@@ -163,7 +172,7 @@ def get_enum_value(EnumModel, value):
     if isinstance(value, basestring):
         # 特例一： 说明，允许unicode和str两种类型
         _labels_to_values = {}
-        for k, v in EnumModel._labels_to_values.iteritems():
+        for k, v in EnumModel._labels_to_values.items():
             if isinstance(k, str):
                 _labels_to_values[unicode(k)] = v
             elif isinstance(k, unicode):
@@ -173,7 +182,7 @@ def get_enum_value(EnumModel, value):
 
         # 特例二： 属性，允许unicode和str两种类型
         _values = {}
-        for k, v in EnumModel._values.iteritems():
+        for k, v in EnumModel._values.items():
             if isinstance(k, str):
                 _values[unicode(k)] = v
             elif isinstance(k, unicode):

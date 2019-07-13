@@ -2,16 +2,16 @@
 # -*- coding:utf-8 -*-
 
 '''
-公用函数 enum.py 的测试类
+公用函数 enum_util.py 的测试类
 Created on 2015/12/11
-Updated on 2019/3/22
+Updated on 2019/7/11
 @author: Holemar
 '''
 import logging
 import unittest
 
 import __init__
-from libs_my.enum import Const, get_enum_value
+from libs_my.enum_util import Const, get_enum_value
 
 class Platform(Const):
     ios = (1, 'IOS')

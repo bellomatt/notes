@@ -109,6 +109,7 @@ os 模块
         27.搜索目录下的所有文件：os.path.walk()
         28.文件的访问时间 :  os.path.getatime(myfile) # 这里的时间以秒为单位，并且从1970年1月1日开始算起
         29.文件的修改时间:  os.path.getmtime(myfile)
+        29.文件的创建时间:  os.path.getctime(myfile)
 
       [2.shutil]
         1.复制单个文件：shultil.copy(oldfile, newfle)
