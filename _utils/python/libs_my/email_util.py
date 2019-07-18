@@ -3,10 +3,10 @@
 """
 邮件公用函数(发邮件用)
 Created on 2015/1/15
-Updated on 2019/7/12
+Updated on 2019/7/15
 @author: Holemar
 
-本模块专门供发邮件用,支持html内容
+本模块专门供发邮件用,支持html内容及附件
 """
 import os
 import sys
@@ -51,7 +51,8 @@ def send_mail(host, user, password, to_list, **kwargs):
     :param {string} Subject: 邮件主题
     :param {string} html: HTML 格式的邮件正文内容
     :param {string} text: 纯文本 格式的邮件正文内容(html格式的及纯文本格式的，只能传其中一个，以html参数优先)
-    :param {list} files: 附件列表,需填入附件路径,如：["d:\\123.txt"]
+    :param {list} files: 附件列表,需填入附件路径,或者文件名及文件二进制流,如：["d:\\123.txt"]
+                         或者 [{"file_content":open("d:\\123.txt", 'rb').read(), "file_name":"123.txt"}]
     :return {bool}: 发信成功则返回 True,否则返回 False
     """
     # 添加邮件内容
@@ -99,16 +100,23 @@ def send_mail(host, user, password, to_list, **kwargs):
     if 'files' in kwargs:
         files = kwargs.get('files') or []
         for file_path in files:
-            # 文件路径
-            file_path = to_unicode(file_path)
-            # 文件名(不包含路径)
-            file_name = os.path.basename(file_path)
+            if isinstance(file_path, basestring):
+                # 文件路径
+                file_path = to_unicode(file_path)
+                # 文件内容
+                file_content = open(file_path, 'rb').read()
+                # 文件名(不包含路径)
+                file_name = os.path.basename(file_path)
+            # 传过来文件二进制流
+            elif isinstance(file_path, dict):
+                file_content = file_path['file_content']
+                file_name = file_path['file_name']
+
             disposition = to_str('attachment; filename="%s"') % to_str(file_name)
             # disposition = to_str(disposition)
             # 取文件后缀
-            suffix = file_path.split('.')[-1]
+            suffix = file_name.split('.')[-1]
             suffix = suffix.lower()
-            file_content = open(file_path, 'rb').read()
             # 处理图片附件
             if suffix in ('jpg', 'jpeg', 'bmp', 'png', 'gif',):
                 image = MIMEImage(file_content)
@@ -171,8 +179,8 @@ if __name__ == '__main__':
         'html': text,  # 邮件内容
         'files': [  # 附件列表
             __file__,
+            # {'file_name': u'备忘.txt', 'file_content': open(u'C:\\workspace\\备忘.txt', 'rb').read()}
             # 'C:\\workspace\\备忘.txt', # 中文名称的文件名，会导致显示乱码，暂时无法解决
-            # 'C:\\WebDisk2\\_同步\\picture_同步\\桌面\\1(3).jpg',
         ],
     }
     mail_to_list = ["123456@qq.com", 'test@qq.com']  # 收信人,发多个人需要用列表,只用字符串则只发第一个
