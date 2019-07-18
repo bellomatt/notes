@@ -3,7 +3,7 @@
 '''
 本模块是 django model 所需的枚举专用
 Created on 2015/12/11
-Updated on 2016/9/29
+Updated on 2019/7/15
 @author: Holemar
 
 
@@ -95,6 +95,8 @@ Updated on 2016/9/29
 import sys
 PY2 = sys.version_info[0] == 2
 PY3 = sys.version_info[0] == 3
+if PY3:
+    basestring = unicode = str
 
 
 class ConstType(type):
@@ -137,14 +139,16 @@ class ConstType(type):
     def __call__(cls, *args, **kw):
         return cls._items
 
-
+"""
+# 由于py2及py3的使用元类写法不一致，这里为了兼容且不引起编译报错，改用统一写法
 if PY2:
     class Const(object):
         __metaclass__ = ConstType
 elif PY3:
-    basestring = unicode = str
-    # class Const(object, metaclass=ConstType): pass  # 这样写，py2编译时会报错。
-    Const = ConstType('Const', (object,), {})
+    class Const(object, metaclass=ConstType):  # 这样写，py2编译时会报错。
+        pass
+"""
+Const = ConstType('Const', (object,), {})
 
 
 # 布尔值是最常用的枚举，所以这里先写一个

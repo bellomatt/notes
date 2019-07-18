@@ -828,6 +828,33 @@ mongo 是 MongoDB 自带的交互式 Javascript shell，用来对 Mongod 进行�
         参数：
         --drop：恢复的时候，先删除当前数据，然后恢复备份的数据。就是说，恢复后，备份后添加修改的数据都会被删除，慎用哦！
 
+    c.运行js文件
+        1、运行js文件插入数据：
+        mongo --verbose localhost:27017/数据库名 -u 用户名 -p 密码 d:/脚本的名字.js
+        mongo 127.0.0.1:27017/数据库名 脚本名.js  // 使用本地默认用户，所以不需要登陆
+        mongo 数据库名 --eval "printjson(db.users.findOne())"  // 如果连接的数据库是 127.0.0.1:27017 ，则，主机和端口可以省略
+        mongo 数据库名 脚本名.js
+
+        2、导入数据
+        mongoimport -h localhost --port 27017 -u 用户名 -p 密码 -d 数据库名 -c 表名 d:/etl_wbxx.dat
+
+        3、在mongo shell 交互模式下，运行一个js文件
+        mongo test
+        load("/root/mongojs/userfindone.js")
+
+        load() 参数中的文件路径，既可以是相对路径，也可以是绝对路径。
+        在mongo shell下查看当前工作路径的方法： pwd()
+
+        4、在js文件中建立数据库连接
+        js 文件内容：
+        conn = new Mongo("127.0.0.1:27017");
+        db = conn.getDB("test");
+        printjson(db.users.findOne());
+        load("utils.js");  // load 函数也可以在js文件里面使用，用来导入其它js文件
+
+        在命令行下运行：
+        mongo --nodb userfindone.js  // 不写数据库名则默认使用“test”库，所以必须指定没有使用数据库 
+
 
 八、 Optimization
   1. Profiler

@@ -132,7 +132,7 @@
        如：'%*s,%0*.*f' % (8, 'newsim', 6, 2, 2.345) # 结果为：'  newsim,002.35'
        如：'%-*s,%++*.*f' % (8, 'newsim', 6, 2, 2.345) # 结果为：'newsim  , +2.35'
 
-    8. {number} 形式(按位占位符)
+    8. {} / {number} 形式(按位占位符)
        {name} 形式(按名称传参)
        string.format()函数也可以格式化字符串，且有“按位”、“按名称”两种形式，还可以两种形式混用
 
@@ -146,6 +146,7 @@
 
        # 格式控制，数值
         import math
+        print('PI is {}.'.format(math.pi)) # PI is 3.14159265359.
         print('PI is {0}.'.format(math.pi)) # PI is 3.14159265359.
         print('PI is {0!r}.'.format(math.pi)) # PI is 3.1415926535897931.
         print('PI is {0:.3f}.'.format(math.pi)) # PI is 3.142.
@@ -171,6 +172,55 @@
             # "Jack      " ==> "      4098"
             # "Sjoerd    " ==> "      4127"
 
+
+f-Strings：一种改进Python格式字符串的新方法
+    从 python3.6 开始，新增 f-strings 格式化，简化之前的 % 和 format 的传参。
+    语法与 str.format() 使用类似
+
+       name = "Eric"
+       age = 74
+       print(f"Hello, {name}. You are {age}.")  # 打印： Hello, Eric. You are 74.
+       print(F"Hello, {name}. You are {age}.")  # 使用大写字母F也是有效的
+
+    任意表达式
+        由于 f-strings 是在运行时进行渲染的，因此可以将任何有效的Python表达式放入其中。这可以让你做一些漂亮的事情。
+        你可以做一些非常简单的事情，就像这样：  f"{2 * 37}"  或者这样: f"{'Eric Idle'}"
+        你可以调用函数:  f"{name.lower()} is funny."
+
+    字典
+        说到引号，注意你在使用字典的时候。如果要为字典的键使用单引号，请记住确保对包含键的f字符串使用双引号。
+        以下代码是有效的:
+
+        comedian = {'name': 'Eric Idle', 'age': 74}
+        f"The comedian is {comedian['name']}, aged {comedian['age']}."
+        # 输出: 'The comedian is Eric Idle, aged 74.'
+
+        但是，以下代码就是一个语法错误：
+        f'The comedian is {comedian['name']}, aged {comedian['age']}.'
+
+    大括号
+        为了使字符串出现大括号，您必须使用双大括号：
+        f"{{74}}" # 输出: '{74}'
+
+        但是，如果使用三个以上的大括号，则可以获得更多大括号：
+        f"{{{{74}}}}"  # 输出: '{{74}}'
+
+    反斜杠
+        可以在f字符串的字符串部分使用反斜杠转义符。
+
+    lambda 表达式
+        如果您需要使用 lambda 表达式，请记住，解析f-字符串的方式会稍微复杂一些。
+        如果!, :或}不在括号，大括号，括号或字符串中，则它将被解释为表达式的结尾。
+        由于 lambda 使用 : ，这可能会导致一些问题：
+
+            f"{lambda x: x * 37 (2)}"
+              File "<fstring>", line 1
+                (lambda x)
+                         ^
+            SyntaxError: unexpected EOF while parsing
+
+        您可以通过将您的 lambda 嵌套在圆括号中来解决此问题：
+        f"{(lambda x: x * 37) (2)}"  # 输出(plain): '74'
 
 
 字符串转换成数字

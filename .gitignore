@@ -1,0 +1,13 @@
+__pycache__
+venv
+*.log
+.svn
+.DS_Store
+.idea
+.project
+.pydevproject
+*.pyc
+*.pyo
+~$*.docx
+*.docx
+Thumbs.db

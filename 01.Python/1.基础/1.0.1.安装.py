@@ -187,5 +187,14 @@ Python命令行选项
         完成上述代码后用bash命令运行即可。
 
     4.禁止 python 在运行的时候自动生成 .pyc 文件
-      python2.6 新增了一个特性，只要把环境变量 PYTHONDONTWRITEBYTECODE 设置为 x，就不再会生成 .pyc 文件了。
+      1) python2.6 新增了一个特性，只要把环境变量 PYTHONDONTWRITEBYTECODE 设置为 x，就不再会生成 .pyc 文件了。
+         mac上是在 ~/.bash_profile 文件中添加：
+            export PYTHONDONTWRITEBYTECODE=x
+
+      2) 使用 -B参数 即：
+         python -B test.py
+
+      3) 在导入的地方写:
+        import sys
+        sys.dont_write_bytecode = True
 
