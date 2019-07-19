@@ -245,7 +245,7 @@ os 模块
     # 分隔文件和扩展名
     f,ext = os.path.splitext(spath)
     print(" f is: " + f)    # 打印: d:/test/test
-    print(" ext is:" + ext) # 打印: 7z
+    print(" ext is:" + ext) # 打印: .7z
 
 
 ########### 示例4 文件操作(读写txt文件) #################################
