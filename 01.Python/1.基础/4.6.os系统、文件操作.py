@@ -32,7 +32,7 @@ os 模块
          wb+: 以二进制写方式打开，可以读、写文件，如果文件不存在，创建该文件；如果文件已存在，先清空，再打开文件
       u: 通用换行模式
       默认的模式是 rt，即打开供读取的文本模式。
-    2.buffering 关键字参数的期望值是以下三个整数中的一个以决定缓冲策略：
+    2.buffering 关键字参数的期望值是以下三个整数中的一个以决定缓冲策略:
       0: 关闭缓冲
       1: 行缓冲
       > 1: 所填的 int 数=缓冲区大小
@@ -43,10 +43,10 @@ os 模块
 
   三、清空文件内容
     f.truncate()
-    注意：当以 "r+","rb+","w","wb","wb+"等模式时可以执行该功能，即具有可写模式时才可以。
+    注意: 当以 "r+","rb+","w","wb","wb+"等模式时可以执行该功能，即具有可写模式时才可以。
 
   四、文件的指针定位与查询
-    (1)文件指针：
+    (1)文件指针:
          文件被打开后，其对象保存在 f 中， 它会记住文件的当前位置,以便于执行读、写操作，
          这个位置称为文件的指针( 一个从文件头部开始计算的字节数 long 类型 )。
     (2)文件打开时的位置:
@@ -63,7 +63,7 @@ os 模块
   五、从文件读取指内容
     1.文本文件(以"rt"方式打开的文件)的读取
       s = f.readline()
-      返回值： s 是字符串，从文件中读取的一行，含行结束符。
+      返回值:  s 是字符串，从文件中读取的一行，含行结束符。
       说明: (1)如果 len(s) = 0 表示已到文件尾(换行符也是有长度的,长度为2)
             (2)如果是文件的最后一行，有可能没有行结束符
     2.二进制文件(以"rb"、"rb+"、"wb+" 方式打开的文件)的读取
@@ -80,54 +80,54 @@ os 模块
 
   七、常用文件操作参考
       [1.os]
-        1.重命名：os.rename(old, new)
-        2.删除：os.remove(file)
-        3.列出目录下的文件：os.listdir(path)
-        4.获取当前工作目录：os.getcwd()
-        5.改变工作目录：os.chdir(newdir)
-        6.创建多级目录：os.makedirs(r"c:\python\test")
-        7.创建单个目录：os.mkdir("test")
-        8.删除多个目录：os.removedirs(r"c:\python") #删除所给路径最后一个目录下所有空目录。
-        9.删除单个目录：os.rmdir("test")
-        10.获取文件属性：os.stat(file)
-        11.修改文件权限与时间戳：os.chmod(file)
-        12.执行操作系统命令：os.system("dir")
-        13.启动新进程：os.exec(), os.execvp()
-        14.在后台执行程序：os.spawnv()
-        15.终止当前进程：os.exit(), os._exit()
-        16.分离文件名：os.path.split(r"c:\python\hello.py") --> ("c:\\python", "hello.py")
-        17.分离扩展名：os.path.splitext(r"c:\python\hello.py") --> ("c:\\python\\hello", ".py")
-        18.获取路径名：os.path.dirname(r"c:\python\hello.py") --> "c:\\python"
-        19.获取文件名：os.path.basename(r"r:\python\hello.py") --> "hello.py"
-        20.判断文件是否存在：os.path.exists(r"c:\python\hello.py") --> True
-        21.判断是否是绝对路径：os.path.isabs(r".\python\") --> False
-        22.判断是否是目录：os.path.isdir(r"c:\python") --> True
-        23.判断是否是文件：os.path.isfile(r"c:\python\hello.py") --> True
-        24.判断是否是链接文件：os.path.islink(r"c:\python\hello.py") --> False
-        25.获取文件大小：os.path.getsize(filename)
-        26.*******：os.ismount("c:\\") --> True
-        27.搜索目录下的所有文件：os.path.walk()
+        1.重命名: os.rename(old, new)
+        2.删除: os.remove(file)
+        3.列出目录下的文件: os.listdir(path)
+        4.获取当前工作目录: os.getcwd()
+        5.改变工作目录: os.chdir(newdir)
+        6.创建多级目录: os.makedirs(r"c:\python\test")
+        7.创建单个目录: os.mkdir("test")
+        8.删除多个目录: os.removedirs(r"c:\python") #删除所给路径最后一个目录下所有空目录。
+        9.删除单个目录: os.rmdir("test")
+        10.获取文件属性: os.stat(file)
+        11.修改文件权限与时间戳: os.chmod(file)
+        12.执行操作系统命令: os.system("dir")
+        13.启动新进程: os.exec(), os.execvp()
+        14.在后台执行程序: os.spawnv()
+        15.终止当前进程: os.exit(), os._exit()
+        16.分离文件名: os.path.split(r"c:\python\hello.py") --> ("c:\\python", "hello.py")
+        17.分离扩展名: os.path.splitext(r"c:\python\hello.py") --> ("c:\\python\\hello", ".py")
+        18.获取路径名: os.path.dirname(r"c:\python\hello.py") --> "c:\\python"
+        19.获取文件名: os.path.basename(r"r:\python\hello.py") --> "hello.py"
+        20.判断文件是否存在: os.path.exists(r"c:\python\hello.py") --> True
+        21.判断是否是绝对路径: os.path.isabs(r".\python\") --> False
+        22.判断是否是目录: os.path.isdir(r"c:\python") --> True
+        23.判断是否是文件: os.path.isfile(r"c:\python\hello.py") --> True
+        24.判断是否是链接文件: os.path.islink(r"c:\python\hello.py") --> False
+        25.获取文件大小: os.path.getsize(filename)
+        26.*******: os.ismount("c:\\") --> True
+        27.搜索目录下的所有文件: os.path.walk()
         28.文件的访问时间 :  os.path.getatime(myfile) # 这里的时间以秒为单位，并且从1970年1月1日开始算起
         29.文件的修改时间:  os.path.getmtime(myfile)
         29.文件的创建时间:  os.path.getctime(myfile)
 
       [2.shutil]
-        1.复制单个文件：shultil.copy(oldfile, newfle)
-        2.复制整个目录树：shultil.copytree(r".\setup", r".\backup")
-        3.删除整个目录树：shultil.rmtree(r".\backup")
+        1.复制单个文件: shutil.copy(oldfile, newfle)
+        2.复制整个目录树: shutil.copytree(r".\setup", r".\backup")
+        3.删除整个目录树: shutil.rmtree(r".\backup")
 
       [3.tempfile]
-        1.创建一个唯一的临时文件：tempfile.mktemp() --> filename
-        2.打开临时文件：tempfile.TemporaryFile()
+        1.创建一个唯一的临时文件: tempfile.mktemp() --> filename
+        2.打开临时文件: tempfile.TemporaryFile()
 
       [4.StringIO] #cStringIO是StringIO模块的快速实现模块
-        1.创建内存文件并写入初始数据：f = StringIO.StringIO("Hello world!")
-        2.读入内存文件数据： print f.read() #或print f.getvalue() --> Hello world!
-        3.想内存文件写入数据：f.write("Good day!")
-        4.关闭内存文件：f.close()
+        1.创建内存文件并写入初始数据: f = StringIO.StringIO("Hello world!")
+        2.读入内存文件数据:  print f.read() #或print f.getvalue() --> Hello world!
+        3.想内存文件写入数据: f.write("Good day!")
+        4.关闭内存文件: f.close()
 
       [5.glob]
-        1.匹配文件：glob.glob(r"c:\python\*.py")
+        1.匹配文件: glob.glob(r"c:\python\*.py")
 
 
 
@@ -161,15 +161,15 @@ os 模块
 
     def __Is_Process_Running(imagename):
         '''
-           功能：检查进程是否存在
-           返回：返回有多少个这进程名的程序在运行，返回0则程序不在运行
+           功能: 检查进程是否存在
+           返回: 返回有多少个这进程名的程序在运行，返回0则程序不在运行
         '''
         p = os.popen('tasklist /FI "IMAGENAME eq %s"' % imagename) # 利用 windows 批处理的 tasklist 命令
         return p.read().count(imagename) # p 是个文件类型，可按文件的操作
 
     def test():
         '''
-           功能：定期地监视测进程是否还在运行，不再运行时执行指定代码
+           功能: 定期地监视测进程是否还在运行，不再运行时执行指定代码
         '''
         while True:
             time.sleep(10)
@@ -228,7 +228,7 @@ os 模块
 
 ########### 示例4 文件操作(分割路径和文件名) #################################
     import os.path
-    #常用函数有三种：分隔路径，找出文件名，找出盘符(window系统)，找出文件的扩展名。
+    #常用函数有三种: 分隔路径，找出文件名，找出盘符(window系统)，找出文件的扩展名。
     spath = "d:/test/test.7z"
 
     # 下面三个分割都返回二元组
@@ -261,7 +261,7 @@ os 模块
         line = f2.readline()
         if len(line) == 0: # 读取结束
             break
-        print(line, end='') # 避免print自动换行, 此行Python2.x应该写：“print line,”
+        print(line, end='') # 避免print自动换行, 此行Python2.x应该写: “print line,”
     f2.close() # close the file
 
     # 删除文件
