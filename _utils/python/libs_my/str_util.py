@@ -3,13 +3,11 @@
 """
 公用函数(字符串处理)
 Created on 2014/7/16
-Updated on 2019/1/9
+Updated on 2019/7/19
 @author: Holemar
 """
-import re
 import sys
 import json
-import copy
 import uuid
 import types
 import random
@@ -17,9 +15,18 @@ import string
 import decimal
 import logging
 import time, datetime
-import gzip, StringIO, zlib
+import gzip, zlib
 from hashlib import md5
+try:
+    import StringIO
+except:
+    from io import StringIO
 
+PY2 = sys.version_info[0] == 2
+PY3 = sys.version_info[0] == 3
+if PY3:
+    basestring = unicode = str
+    long = int
 
 __all__=('to_unicode', 'to_str', 'deep_str', 'to_human', 'to_json', 'json2str', 'mod',
          'gzip_encode', 'gzip_decode', 'zlib_encode', 'zlib_decode',
@@ -58,12 +65,12 @@ def to_unicode(value, **kwargs):
                     value = json.dumps(value, ensure_ascii=False)
                     value = value.replace(r"\\u", r"\u") # json.dumps 会转换“\”,使得“\u65f6”变成“\\u65f6”
                     value = eval(u'u%s' % value)
-            except Exception, e:
+            except Exception as e:
                 logging.error(u'将字符串转成可阅读编码出错:%s, 字符串:%s', e, value)
         # 长度处理
         max_str = kwargs.get('max')
         max_str = int(max_str) if max_str and isinstance(max_str, basestring) and max_str.isdigit() else max_str
-        if max_str and isinstance(max_str, (int,long,float)):
+        if max_str and isinstance(max_str, (int, long, float)):
             if max_str > 0 and len(value) > max_str:
                 value = u"%s..." % value[:max_str]
         return value
@@ -176,7 +183,7 @@ def to_json(value, **kwargs):
     if isinstance(value, basestring):
         try:
             value = json.loads(value)
-        except Exception, e:
+        except Exception as e:
             #logging.warn(u'将字符串json反序列化出错,下面将转eval处理:%s, 参数:%s', e, value, exc_info=True)
             try:
                 # 兼容 json 格式的 true 和 false
@@ -184,7 +191,7 @@ def to_json(value, **kwargs):
                 false = False
 
                 value = eval(value)
-            except Exception, e:
+            except Exception as e:
                 raise_error = kwargs.get('raise_error', True)
                 if raise_error:
                     logging.error(u'将字符串json反序列化出错,无法处理:%s, 参数:%s', e, value, exc_info=True)
@@ -202,7 +209,7 @@ def json2str(value, **kwargs):
     try:
         value = deep_str(value, **kwargs) # 兼容 GBK、big5 编码的中文字符
         value = json.dumps(value)
-    except Exception, e:
+    except Exception as e:
         raise_error = kwargs.get('raise_error', True)
         if raise_error:
             logging.warn(u'将对象进行json序列化出错:%s, 参数:%s', e, value, exc_info=True)
@@ -210,7 +217,7 @@ def json2str(value, **kwargs):
         else:
             try:
                 value = str(value)
-            except Exception, e:
+            except Exception as e:
                 pass
     return value
 

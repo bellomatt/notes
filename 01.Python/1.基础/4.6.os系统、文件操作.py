@@ -101,6 +101,7 @@ os 模块
         19.获取文件名: os.path.basename(r"r:\python\hello.py") --> "hello.py"
         20.判断文件是否存在: os.path.exists(r"c:\python\hello.py") --> True
         21.判断是否是绝对路径: os.path.isabs(r".\python\") --> False
+        21.获取文件的绝对路径: os.path.abspath(__file__) --> "c:\\python\\test.py"
         22.判断是否是目录: os.path.isdir(r"c:\python") --> True
         23.判断是否是文件: os.path.isfile(r"c:\python\hello.py") --> True
         24.判断是否是链接文件: os.path.islink(r"c:\python\hello.py") --> False

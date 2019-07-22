@@ -11,10 +11,10 @@
 
     例:
     shoplist = ['apple', 'mango', 'carrot', 'banana']
-    #查看长度
+    # 查看长度
     print('I have', len(shoplist),'items to purchase.')
 
-    #遍历
+    # 遍历
     print 'These items are:', # 注意这行的结尾,打印时可以不换行,python 3.x应该写： print('These items are:', end=' ')
     for item in shoplist:
         print item, # 打印后不换行, python 3.x 此行应该写：“print(item, end=' ')”
@@ -23,19 +23,19 @@
     for index, item in enumerate(shoplist):
         print index, item  # 打印如:0 apple
 
-    #添加
+    # 添加
     print('\nI also have to buy rice.')
     shoplist.append('rice')
     #shoplist += ['rice'] # 跟上句一样的效果,添加一个值到列表里面。
     #shoplist[:] = shoplist + ['rice'] # 这样写跟上句也一样效果。注意,“ shoplist = shoplist + ['rice'] ”这写法会改变引用地址
     print('My shopping list is now:', shoplist) # 打印:["apple", "mango", "carrot", "banana", "rice"]
 
-    #排序
+    # 排序
     print('I will sort my list now')
     shoplist.sort()
     print('Sorted shopping list is:', shoplist) # 打印:['apple', 'banana', 'carrot', 'mango', 'rice']
 
-    #删除,以及使用下标
+    # 删除,以及使用下标
     print('The first item I will buy is:', shoplist[0])
     olditem = shoplist[0]
     #shoplist.remove(olditem) # 按值删除,当这值不存在列表时会报错
@@ -43,7 +43,7 @@
     print('I bought the', olditem)
     print('My shopping list is now:', shoplist) # 打印:['banana', 'carrot', 'mango', 'rice']
 
-    #多维列表时,保存的对象只是引用
+    # 多维列表时,保存的对象只是引用
     newlist = ['waa','dd']
     shoplist.append(newlist)
     print('My shopping list is now:', shoplist) # 打印:['banana', 'carrot', 'mango', 'rice', ['waa', 'dd']]
@@ -374,6 +374,16 @@
     print('Item 1 to -1 is %s' % shoplist[1:-1])    # 打印:['mango', 'carrot']   即下标[1]到[-1],包括开始但不包括结束
     print('Item start to end is %s' % shoplist[:])  # 打印整个列表,跟直接写“shoplist”效果一样, 即是复制这个列表
 
+    # 列表的值修改(引用地址不变)
+    shoplist = ['apple', 'mango', 'carrot', 'banana']
+    print(id(shoplist), shoplist) # 打印: 4539454728 ['apple', 'mango', 'carrot', 'banana']
+    shoplist[:] = ['a', 'bb', '111'] # 值完全变了，但引用地址不变，即 id(s) 返回值不变
+    print(id(shoplist), shoplist) # 打印: 4539454728 ['a', 'bb', '111']
+    shoplist[:0] = [6, 7] # 在列表开头插入两个元素
+    print(id(shoplist), shoplist) # 打印: 4539454728 [6, 7, 'a', 'bb', '111']
+    shoplist[1:3] = [1,2,3,4] # 替换列表中的元素
+    print(id(shoplist), shoplist) # 打印: 4539454728 [6, 1, 2, 3, 4, 'bb', '111']
+
     # string[start:stop] (string 与 list, tuple 有同样的操作)
     name = 'swaroop'
     print('characters 1 to 3 is %s' % name[1:3])     # 打印:wa       取第几到第几个
@@ -390,7 +400,6 @@
     print(s[::-1])   # 'GFEDCBA'  反序复制
     print(s[::2])    # 'ACEG'     获取 奇数项
     print(s[1::2])   # 'BDF'      获取 偶数项
-
 
     # 序列 也可以直接用“+”拼接成新序列
     nfc = ["Packers", "49ers"]

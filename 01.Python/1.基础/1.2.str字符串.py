@@ -272,7 +272,7 @@ f-Strings：一种改进Python格式字符串的新方法
 常用 string 函数
     下面所有范例，使用 s = 'python String function'
 
-  1.字符串长度获取: len(str)
+  1.字符串长度获取: len(s)
     例: print '%s length=%d' % (s,len(s)) # 打印: python String function length=22
 
   2.字母处理
@@ -365,6 +365,8 @@ f-Strings：一种改进Python格式字符串的新方法
     是否全数字: str.isdigit()
     是否全小写: str.islower()
     是否全大写: str.isupper()
+    首字母大写: str.istitle() # 所有单词都是首字母大写，像标题。首字母是数字也返回 False
+    是否空白符: str.isspace() # 所有字符都是 空白字符、\t、\n、\r
 
     s='python String function'
     print '"%s" startwith t="%s"' % (s,s.startswith('t')) # 打印:"python String function" startwith t="False"
@@ -381,6 +383,18 @@ f-Strings：一种改进Python格式字符串的新方法
     s='3423'
     print '"%s" isdigit="%s"' % (s,s.isdigit()) # 打印:"3423" isdigit="True"
 
+
+python3的字符串新函数
+    s为字符串
+    s.isidentifier() 是否有效的标识符(用来判断变量名是否合法)
+    s.isalnum() 所有字符都是数字或者字母,包括字母,Unicode数字,单字节数字(byte),双字节全角数字罗马数字,汉字数字。不包括小数
+    # 下面 isdecimal,isdigit,isnumeric 这三个字符串方法都用于判断字符串是否全为数字
+    s.isdigit() 包括Unicode数字，单字节数字(byte)，双字节全角数字，不包括汉字数字，罗马数字、小数
+    s.isdecimal() 包括Unicode数字、双字节全角数字，不包括罗马数字、汉字数字、小数
+    s.isnumeric() 包括Unicode数字、双字节全角数字、罗马数字、汉字数字，不包括小数
+    # 注意：isdecimal,isnumeric 判断单字节数字(byte)会报错。而 isdigit 返回 True
+    # isdigit 在py2时，仅str和unicode数字返回True，单双字节数字、汉字数字、罗马数字 都返回False。两版本返回值不同
+    # 另外，本人测试时 isdecimal,isdigit,isnumeric 三个函数对罗马数字都返回 False，但网上说 isnumeric 允许
 
 
 str, unicode 对象的 encode 和 decode 方法
