@@ -170,7 +170,13 @@ long([x[, radix]])
     转换字符串或数字为一个长整数。如果参数是一个字符串，它必须包含一个任意大小的可能有符号的数字，并有可能嵌入空格。radix参数解释和int()一样，而且只能当x是一个字符串时才需要它。否则，参数可以是一个普通或长整数或浮点数，返回与其相同值的长整数。转换浮点数到截断的整数(直到零)。如果没有给出参数，返回0L。
 
 map(function, iterable, ...)
-    应用function在iterable的每一个项上并返回一个列表。如果有其他可迭代的参数，函数必须采取许多参数应用于来自所有iterables项。如果一个迭代比另一个短，将以None进行扩展。如果function是None，将假设为identity function，如果有多个参数，map()返回一个列表包含所有iterables相应的项目的元组组成。可迭代的参数可能是一个序列或任何可迭代的对象，结果总是一个列表。
+    应用 function 在 iterable 的每一个项上并返回一个结果列表。
+    如果有其他可迭代的参数，函数必须支持相应多个参数应用于来自所有iterables项。如果一个迭代比另一个短，将以 None 进行扩展。
+    如果 function 是 None ，将假设为 identity function ，如果有多个参数，map()返回一个列表包含所有iterables相应的项目的元组组成。
+    可迭代的参数可能是一个序列或任何可迭代的对象，结果总是一个列表。
+    如: map(str, [1, 2, 3]) 在 py2.7 直接返回列表 ['1', '2', '3']， 而在 py3.6 返回迭代器，需要再遍历它。
+        map(None, [1, 2, 3]) 在 py2.7 返回 [1, 2, 3]， 而在 py3.6 报错，不允许 function 是 None
+        map(lambda x, y: str(x)+str(y), [1, 2, 3], [4, 5, 6, 7]) 在 py2.7 返回 ['14', '25', '36', 'None7'] 而在 py3.6 返回 ['14', '25', '36']
 
 max(iterable[, args...][key])
     一个Iterable参数，返回其中一个最大的非空可迭代项，(如一个字符串，元组或列表)。如有多个参数，返回最大的参数。
@@ -213,9 +219,13 @@ raw_input([prompt])
     如果的ReadLine模块被加载，然后raw_input()将使用它来提供详细行编辑和历史特性。
 
 reduce(function, iterable[, initializer])
-    使用带两参数的函数从左到右计算iterable的项，reduce这iterable得到一个数字。(累计计算结果，直到计算完所有项)
+    使用带两参数的函数从左到右计算 iterable 的项， reduce 这 iterable 得到一个数字。(累计计算结果，直到计算完所有项)
     例如: reduce(lambda x, y: x+y, [1, 2, 3, 4, 5]) 就是计算 ((((1+2)+3)+4)+5)。
     左参数x，是累加值和右边的参数，y，是iterable中更新的值。如果可选的initializer存在，在计算中摆在可迭代的项的前面，当iterable为空时，作为默认。如果没有给出initializer，则只包含一项，返回第一项。
+    在Python 3里， reduce() 函数已经被从全局名字空间里移除了，它现在被放置在 fucntools 模块里。使用前需要先引用:
+    from functools import reduce
+    reduce(lambda x, y: x * y, [1, 2, 3, 4])  # 相当于 ((1 * 2) * 3) * 4， 结果是 24
+    reduce(lambda x, y: x * y, [1, 2, 3, 4], 5) # ((((5 * 1) * 2) * 3)) * 4， 结果是 120
 
 reload(module)
     重新导入先前导入的模块。该参数必须是一个模块对象，因此它之前必须已成功导入。
