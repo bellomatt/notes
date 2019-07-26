@@ -3,16 +3,16 @@
 """
 公用函数(mysql数据库的操作)
 Created on 2014/7/16
-Updated on 2019/1/18
+Updated on 2019/7/24
 @author: Holemar
 
 依赖第三方库:
-    MySQL-python==1.2.3 或者 PyMySQL==0.7.11
-    DBUtils==1.1
+    MySQL-python==1.2.3 或者 PyMySQL>=0.7.11,<=0.9.3
+    DBUtils>=1.1,<=1.3
 
 使用前必须先设置mysql数据库的连接
 """
-
+import sys
 import time
 import logging
 import threading
@@ -25,6 +25,12 @@ except:
 
 from MySQLdb.cursors import DictCursor
 from DBUtils.PooledDB import PooledDB
+
+PY2 = sys.version_info[0] == 2
+PY3 = sys.version_info[0] == 3
+if PY3:
+    basestring = unicode = str
+    long = int
 
 
 __all__=('init', 'set_conn', 'get_conn', 'ping', 'select', 'get', 'execute', 'execute_list', 'executemany',
@@ -55,6 +61,7 @@ CONFIG = {
     'raise_error' : True, # {bool} 遇到操作异常时,是否抛出异常信息(默认抛出)。为 True则会抛出异常信息,否则不抛出
 }
 
+
 def init(**kwargs):
     """
     设置各函数的默认参数值
@@ -74,6 +81,7 @@ def init(**kwargs):
         CONFIG['db'] = default_db
         set_conn(default_db)
 
+
 def set_conn(conn_config):
     """
     设置数据库连接,使用前必须先设置
@@ -85,10 +93,11 @@ def set_conn(conn_config):
     CONFIG['db'].update(conn_config)
     try:
         dbpool = PooledDB(MySQLdb, **conn_config)
-    except Exception, e:
+    except Exception as e:
         logging.error('[red]mysql connection error:%s[/red]', e, exc_info=True, extra={'color':True})
         raise
     return True
+
 
 def ping(**kwargs):
     """
@@ -105,6 +114,7 @@ def ping(**kwargs):
     finally:
         close_conn(conn, cursor)
 
+
 def get_conn(repeat_time=3):
     """
     获取数据库连接
@@ -117,7 +127,7 @@ def get_conn(repeat_time=3):
         try:
             global CONFIG
             dbpool = PooledDB(MySQLdb, **CONFIG['db'])
-        except Exception, e:
+        except Exception as e:
             logging.error('[red]mysql connection error:%s[/red]', e, exc_info=True, extra={'color':True})
             raise
     # 允许出错时重复提交多次,只要设置了 repeat_time 的次数
@@ -126,10 +136,11 @@ def get_conn(repeat_time=3):
             conn = dbpool.connection()
             # 尝试连接数据库
             conn.ping(True)
-            cursor = conn.cursor()
+            # cursor = conn.cursor() # py3 下的 pymysql 会导致默认值失效，这里强制使用 dict 返回
+            cursor = conn.cursor(cursor=MySQLdb.cursors.DictCursor)
             return conn, cursor
         # 数据库连接,默认8小时没有使用会自动断开,这里捕获这异常
-        except Exception, e:
+        except Exception as e:
             repeat_time -= 1
             logging.error('[red]mysql connection error:%s[/red]', e, exc_info=True, extra={'color':True})
             try:
@@ -139,6 +150,7 @@ def get_conn(repeat_time=3):
                 if conn:conn.close()
             except:pass
     return conn, cursor
+
 
 def close_conn(conn=None, cursor=None):
     """
@@ -154,6 +166,7 @@ def close_conn(conn=None, cursor=None):
         #if conn:conn.close()
         pass
     except:pass
+
 
 def _init_execute(func):
     """处理获取数据库连接、超时记日志问题"""
@@ -240,6 +253,7 @@ def __select(sql, param=None, fetchone=False, **kwargs):
         else:
             return False
 
+
 def select(sql, param=None, fetchone=False, **kwargs):
     """
     查询SQL结果
@@ -306,7 +320,7 @@ def __execute(sql, param=None, clash=1, rowid=False, transaction=True, **kwargs)
     except MySQLdb.IntegrityError:
         logging.warn(u"[yellow]主键冲突[/yellow]:%s, %s" , sql, param, extra={'color':True})
         return clash
-    except Exception, e:
+    except Exception as e:
         logging.error(u"[red]执行失败[/red]:%s, SQL:%s, 参数:%s" , e, sql, param, exc_info=True, extra={'color':True})
         if transaction and conn: conn.rollback()
         global CONFIG
@@ -315,6 +329,7 @@ def __execute(sql, param=None, clash=1, rowid=False, transaction=True, **kwargs)
             raise
         else:
             return  -1
+
 
 def execute(sql, param=None, clash=1, rowid=False, transaction=True, **kwargs):
     """
@@ -356,7 +371,7 @@ def __executemany(sql, param, clash=1, transaction=True, **kwargs):
     except MySQLdb.IntegrityError:
         logging.warn(u"[yellow]主键冲突[/yellow]:%s, %s" , sql, param, extra={'color':True})
         return clash
-    except Exception, e:
+    except Exception as e:
         logging.error(u"[red]执行失败[/red]:%s, SQL:%s, 参数:%s" , e, sql, param, exc_info=True, extra={'color':True})
         if transaction and conn: conn.rollback()
         global CONFIG
@@ -365,6 +380,7 @@ def __executemany(sql, param, clash=1, transaction=True, **kwargs):
             raise
         else:
             return -1
+
 
 def executemany(sql, param, clash=1, transaction=True, **kwargs):
     """
@@ -424,7 +440,7 @@ def execute_list(sql_list, must_rows=False, transaction=True, **kwargs):
             row += this_row
         if transaction: conn.commit()
         return row
-    except Exception, e:
+    except Exception as e:
         logging.error(u"[red]执行失败[/red]:%s, SQL:" % (e, sql_list), exc_info=True, extra={'color':True})
         if transaction and conn: conn.rollback()
         global CONFIG
@@ -467,6 +483,7 @@ def query_data(table, condition=None, orderby=None, **kwargs):
     rows = select(sql, param=condition, **kwargs)
     return rows
 
+
 def add_data(table, param, **kwargs):
     """
     插入数据到一个表
@@ -505,6 +522,7 @@ def add_data(table, param, **kwargs):
         row = executemany(sql, param=param, **kwargs)
         return row
 
+
 def add_datas(table_list, **kwargs):
     """
     一起插入多个语句,原子操作，其中任意一个操作语句失败都会全体回滚
@@ -528,6 +546,7 @@ def add_datas(table_list, **kwargs):
         sql_list.append((sql, params,))
     row = execute_list(sql_list, **kwargs)
     return row
+
 
 def del_data(table, condition, **kwargs):
     """
@@ -553,6 +572,7 @@ def del_data(table, condition, **kwargs):
     sql = u"DELETE FROM `%s` WHERE %s" % (get_table(table), condition_sql)
     row = execute(sql, param=condition, **kwargs)
     return row
+
 
 def update_data(table, param, condition, **kwargs):
     """
@@ -602,6 +622,7 @@ def format_sql(sep, param, keys_prefix='', **kwargs):
     if not param or not isinstance(param, dict):
         return '1=1'
     return (u"%s" % sep).join(u"`%s`=%%(%s%s)s" % (unicode(x), keys_prefix, unicode(x)) for x in param.keys())
+
 
 def get_table(table):
     """
@@ -693,11 +714,11 @@ class Atom:
                     conn = MySQLdb.connect(**db_config)
                     cursor = conn.cursor()
                     return conn, cursor, db_key
-                except Exception, e:
+                except Exception as e:
                     logging.error(u'[red]mysql connection error[/red]:%s' , e, exc_info=True, extra={'color':True})
                     raise
             # 连接超时或已断开
-            except Exception, e:
+            except Exception as e:
                 repeat_time -= 1
                 logging.error(u'[red]mysql connection error[/red]:%s' , e, exc_info=True, extra={'color':True})
                 try:
@@ -759,11 +780,11 @@ class Atom:
         # 获取 docstring
         __doc = eval(u"%s.__doc__" % __function) or ''
         # 动态加入函数
-        exec u"""def %(function)s (self, *args, **kwargs):
+        exec(u"""def %(function)s (self, *args, **kwargs):
         u'''%(doc)s'''; # 生成 docstring
         kwargs.update(self.other_params); # 设置额外参数
         res = %(function)s(*args, **kwargs); # 调用本文件的对应操作函数
-        return res;""" % {'function': __function, 'doc':__doc}
+        return res;""" % {'function': __function, 'doc':__doc})
     # 删除上面产生的临时变量,避免遗留在这类里面
     del __doc
     del __function

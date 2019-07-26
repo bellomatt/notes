@@ -3,7 +3,7 @@
 """
 公用函数(数据库处理) mysql_util.py 的测试
 Created on 2014/7/16
-Updated on 2019/1/18
+Updated on 2019/7/24
 @author: Holemar
 """
 import logging
@@ -16,6 +16,9 @@ from libs_my import mysql_util
 
 
 def test_init(DB_CONFIG):
+    """测试前的初始化数据库表
+    :param DB_CONFIG:数据库配置
+    """
     mysql_util.init(db=DB_CONFIG)
     assert mysql_util.ping()
 
@@ -38,16 +41,16 @@ def test_init(DB_CONFIG):
 
 
 def test_end():
-    # 删除表，避免遗留测试痕迹
+    """测试结束后，删除测试表，避免遗留测试痕迹"""
     mysql_util.execute('drop table if exists `test_table`')
 
 
-class MysqlTools_Test(unittest.TestCase):
+class MysqlToolsTest(unittest.TestCase):
     db = mysql_util
 
     def setUp(self):
         """初始化"""
-        super(MysqlTools_Test, self).setUp()
+        super(MysqlToolsTest, self).setUp()
         assert self.db.ping()
 
     def tearDown(self):
@@ -57,24 +60,23 @@ class MysqlTools_Test(unittest.TestCase):
         self.db.execute("TRUNCATE TABLE test_table")
         result = self.db.select('select * from test_table')
         assert len(result) == 0
-        super(MysqlTools_Test, self).tearDown()
-
+        super(MysqlToolsTest, self).tearDown()
 
     def test_insert_select_get(self):
         # 插入一条
-        logging.warn('execute 测试')
+        logging.warning('execute 测试')
         rows = self.db.execute("insert into test_table(playlist_id, status) values(1, 'inactive')")
         assert rows == 1
 
-        logging.warn('select 测试')
+        logging.warning('select 测试')
         result = self.db.select('select * from test_table')
         assert len(result) == 1
 
-        logging.warn('get 测试')
+        logging.warning('get 测试')
         result = self.db.get('select * from test_table')
         assert isinstance(result, dict)
 
-        logging.warn('execute 插入时间 测试')
+        logging.warning('execute 插入时间 测试')
         rows = self.db.execute("INSERT INTO test_table(playlist_id,status,update_date) VALUES (%(playlist_id)s, %(status)s, %(update_date)s)", {'status':'active', 'playlist_id':66, 'update_date':datetime.datetime.now()})
         assert rows == 1
 
@@ -85,7 +87,7 @@ class MysqlTools_Test(unittest.TestCase):
 
     def test_rowid_select(self):
         # 获取 rowid
-        logging.warn('execute 获取 rowid 测试')
+        logging.warning('execute 获取 rowid 测试')
         now = datetime.date.today()
         rowid = self.db.execute("insert into test_table(status, playlist_id, last_use_time) values(%s, %s, %s)", ('active',1011,now), rowid=True)
         assert rowid == 1
@@ -103,7 +105,7 @@ class MysqlTools_Test(unittest.TestCase):
         assert len(result) == 4
 
         # 查询参数
-        logging.warn('select 参数测试')
+        logging.warning('select 参数测试')
         result = self.db.select('select * from test_table where playlist_id=%s', 1011)
         assert len(result) == 3
 
@@ -133,7 +135,7 @@ class MysqlTools_Test(unittest.TestCase):
 
     def test_executemany(self):
         # executemany
-        logging.warn('executemany 测试')
+        logging.warning('executemany 测试')
         rows = self.db.executemany("INSERT INTO test_table(circle_code,playlist_id) VALUES (%s,%s)", [(u"a'e''呵呵", 11),('a', 12), ('a', 13)])
         assert rows == 3
         result = self.db.select('select * from test_table where circle_code=%s', 'a')
@@ -150,7 +152,7 @@ class MysqlTools_Test(unittest.TestCase):
 
     def test_execute_list(self):
         # execute_list
-        logging.warn('execute_list 测试')
+        logging.warning('execute_list 测试')
         rows = self.db.execute_list([("insert into test_table(playlist_id, status) values(33, 'inactive')",None),("insert into test_table(playlist_id, status) values(44, 'inactive')",None)], must_rows=True)
         assert rows == 2
 
@@ -160,12 +162,12 @@ class MysqlTools_Test(unittest.TestCase):
 
     def test_threads(self):
         # 异步测试
-        logging.warn('异步 测试')
+        logging.warning('异步 测试')
         th1 = self.db.execute("insert into test_table(playlist_id, status) values(2233, 'inactive')", threads=True)
         th2 = self.db.execute("insert into test_table(playlist_id, status) values(2233, 'inactive')", threads=True)
         assert isinstance(th1, threading.Thread)
         assert isinstance(th2, threading.Thread)
-        logging.warn('异步请求发送完毕')
+        logging.warning('异步请求发送完毕')
         th1.join()
         th2.join()
 
@@ -175,12 +177,18 @@ class MysqlTools_Test(unittest.TestCase):
 
     def test_format_sql(self):
         # 格式化字符串函数测试
-        logging.warn('格式化字符串函数 测试')
+        logging.warning('格式化字符串函数 测试')
         assert self.db.format_sql(',', None) == '1=1'
         assert self.db.format_sql(',', {}) == '1=1'
-        assert self.db.format_sql(',', {'c':u"哈'哈"}) == u"`c`=%(c)s"
-        assert self.db.format_sql(' AND ', {'a':u'a', 'b':1, 'c':u"哈'哈"}) == u"`a`=%(a)s AND `c`=%(c)s AND `b`=%(b)s" # 生成字符串的排序有点难理解
-        assert self.db.add_sql('test_table', {'a':u'a', 'b':1, 'c':u"哈'哈"}) == "INSERT INTO `test_table` (`a`, `c`, `b`) VALUES (%(a)s, %(c)s, %(b)s)"
+        assert self.db.format_sql(',', {'c': u"哈'哈"}) == u"`c`=%(c)s"
+        assert self.db.format_sql(' AND ', {'a': u'a', 'b': 1, 'c': u"哈'哈"}) in (
+            u"`a`=%(a)s AND `c`=%(c)s AND `b`=%(b)s",  # py2 生成字符串的排序有点难理解
+            u"`a`=%(a)s AND `b`=%(b)s AND `c`=%(c)s",  # py3 生成字符串的排序经过优化
+        )
+        assert self.db.add_sql('test_table', {'a': u'a', 'b': 1, 'c': u"哈'哈"}) in (
+            "INSERT INTO `test_table` (`a`, `c`, `b`) VALUES (%(a)s, %(c)s, %(b)s)",  # py2
+            "INSERT INTO `test_table` (`a`, `b`, `c`) VALUES (%(a)s, %(b)s, %(c)s)",  # py3
+        )
 
 
     def test_query_data(self):
@@ -190,7 +198,7 @@ class MysqlTools_Test(unittest.TestCase):
         assert rows == 1
 
         # query_data 测试
-        logging.warn('query_data 测试')
+        logging.warning('query_data 测试')
         results = self.db.query_data('test_table', {"playlist_id":2233})
         assert len(results) == 2
         assert results[0].get('id') < results[1].get('id')
@@ -202,7 +210,7 @@ class MysqlTools_Test(unittest.TestCase):
 
     def test_add_data(self):
         # add_data
-        logging.warn('add_data 测试')
+        logging.warning('add_data 测试')
         # 添加单条
         rows = self.db.add_data('test_table', {'circle_code':"e'e''e",'playlist_id':331, 'last_use_time':datetime.datetime.now()}) # 参数含单引号
         assert rows == 1
@@ -218,7 +226,7 @@ class MysqlTools_Test(unittest.TestCase):
 
     def test_add_datas(self):
         # add_datas (是 add_data 函数的多条执行模式)
-        logging.warn('add_datas 测试')
+        logging.warning('add_datas 测试')
         rows = self.db.add_datas([('test_table',{"circle_code":"e'e''e",'playlist_id':221, 'update_date':datetime.datetime.now()}),('test_table',{'playlist_id':443,'circle_code':u"哎f'f''哈", 'update_date':time.strftime('%Y-%m-%d %H:%M:%S')})])
         assert rows == 2
 
@@ -236,7 +244,7 @@ class MysqlTools_Test(unittest.TestCase):
         assert data.get('circle_code') == "e'e''e"
 
         # update_data
-        logging.warn('update_data 测试')
+        logging.warning('update_data 测试')
         rows = self.db.update_data('test_table', {'status':'inactive','circle_code':"eee"}, {'playlist_id':221})
         assert rows == 1
         result = self.db.query_data('test_table', {"playlist_id":221})
@@ -260,14 +268,14 @@ class MysqlTools_Test(unittest.TestCase):
         result = self.db.query_data('test_table', {"playlist_id":221})
         assert len(result) == 1
         # del_data
-        logging.warn('del_data 测试')
+        logging.warning('del_data 测试')
         rows = self.db.del_data('test_table', {'playlist_id':221})
         assert rows == 1
         result = self.db.query_data('test_table', {"playlist_id":221})
         assert len(result) == 0
 
 
-class Test_Atom1(MysqlTools_Test):
+class Test_Atom1(MysqlToolsTest):
     db = None
 
     def setUp(self):
@@ -292,21 +300,22 @@ class Test_Atom1(MysqlTools_Test):
 
     def test_doc(self):
         # 每个变量都有文档
-        logging.warn('Atom 文档 测试')
+        logging.warning('Atom 文档 测试')
         functions = dir(mysql_util.Atom)
-        #logging.info(functions)
+        # logging.warning(functions)
         for function in functions:
-            #logging.info("%s.__doc__: %s", (function, getattr(mysql_util.Atom, function).__doc__))
-            assert not not getattr(mysql_util.Atom, function).__doc__
+            if function.startswith('_'): continue
+            # logging.warning("%s.__doc__: %s" % (function, getattr(mysql_util.Atom, function).__doc__))
+            assert bool(getattr(mysql_util.Atom, function).__doc__)
 
 
     def test_threads(self):
         # 异步 测试
-        logging.warn('Atom 异步测试, 此功能已去掉, 故无法测试')
+        logging.warning('Atom 异步测试, 此功能已去掉, 故无法测试')
 
 
     def test_rollback(self):
-        logging.warn('Atom rollback 测试')
+        logging.warning('Atom rollback 测试')
         # 插入一条
         rows = self.db.execute("insert into test_table(playlist_id, status) values(1, 'inactive')")
         assert rows == 1
@@ -324,7 +333,7 @@ class Test_Atom1(MysqlTools_Test):
 
 
     def test_commit(self):
-        logging.warn('Atom commit 测试')
+        logging.warning('Atom commit 测试')
         # 插入一条
         rows = self.db.execute("insert into test_table(playlist_id, status) values(%s, %s)", (1, 'inactive'))
         assert rows == 1
@@ -347,32 +356,32 @@ class Test_Atom2(unittest.TestCase):
         fail = False
         try:
             mydb = mysql_util.Atom(**{
-                 'host':'127.1.1.3',
-                 'port':3306,
-                 'user':'root',
-                 'passwd':'keepc@2014..',
+                 'host': '127.1.1.3',
+                 'port': 3306,
+                 'user': 'root',
+                 'passwd': 'keepc@2014..',
                  'db': 'test',
-                 'charset':'utf8',
+                 'charset': 'utf8',
                  })
             assert mydb.ping()
         except:
             fail = True
-            logging.warn('Atom连接不上,测试通过, 上面报错是必须的。。。')
+            logging.warning('Atom连接不上,测试通过, 上面报错是必须的。。。')
         assert fail
 
 
 if __name__ == "__main__":
     # 数据库配置
     DB_CONFIG = {
-         'maxconnections':1,
-         'host':'127.0.0.1',
-         'port':3306,
-         'user':'root',
-         'passwd':'root',
+         'maxconnections': 1,
+         'host': '127.0.0.1',
+         'port': 3306,
+         'user': 'root',
+         'passwd': '12345678',
          'db': 'test',
-         'charset':'utf8',
+         'charset': 'utf8',
          }
 
-    test_init(DB_CONFIG) # 数据库初始化连接、建表
+    test_init(DB_CONFIG)  # 数据库初始化连接、建表
     unittest.main()
-    test_end() # 删除表，避免遗留测试痕迹
+    test_end()  # 删除表，避免遗留测试痕迹
