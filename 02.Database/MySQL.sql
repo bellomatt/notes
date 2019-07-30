@@ -39,6 +39,20 @@
   5.查看正在执行的SQL：
     show processlist;
 
+  6.limit
+    SELECT * FROM table LIMIT [offset,] rows;
+    LIMIT 接受一个或两个数字参数。参数必须是一个整数常量。
+    如果给定两个参数，第一个参数指定第一个返回记录行的偏移量，第二个参数指定返回记录行的最大数目。
+    如果只给定一个参数，它表示返回最大的记录行数目。换句话说， LIMIT n 等价于 LIMIT 0,n。
+    初始记录行的偏移量是 0(而不是 1)
+
+    mysql> SELECT * FROM table LIMIT 5,10; // 检索记录行 6-15
+    mysql> SELECT * FROM table LIMIT 5; //检索前 5 个记录行
+    
+    //为了检索从某一个偏移量到记录集的结束所有的记录行，可以指定第二个参数为 -1：
+    mysql> SELECT * FROM table LIMIT 95,-1; // 检索记录行 96-last. 
+
+
 
 Index:索引。依附于表，为提高检索速度。
     index(索引)是数据库特有的一类对象，实际应用中一定要考虑索引，view(示图)
@@ -477,7 +491,7 @@ MYSQL的事务处理
     from (
         select case item298 when 0 then 1 else 0 end isFillIn, case item298 when -2 then 1 else 0 end isSuspend,
         if(isnull(left(a.item250,1)) or ifnull(item298,-2)<>0,0,left(a.item250,1)) as 98Nums
-         FROM ft_running_status AS a where a.years=98 "
+         FROM ft_running_status AS a where a.years=98
     ) f
 
     select '期初餘額' as type, (a.amt + b.amt) as inAmt
