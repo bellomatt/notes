@@ -25,14 +25,26 @@ PY2 = sys.version_info[0] == 2
 PY3 = sys.version_info[0] == 3
 
 if PY2:
+    from urllib import quote
     from str_util import to_unicode, to_str
 else:
+    from urllib.parse import quote
     def to_str(s): return str(s)
     def to_unicode(s): return str(s)
     basestring = str
 
 __all__ = ("send_mail",)
 logger = logging.getLogger('libs_my.email_util')
+
+# 图片类型
+IMAGE_TYPES = ('jpg', 'jpeg', 'bmp', 'png', 'gif',)
+TYPE_NAME = {
+    "jpeg": "image/jpeg",
+    "jpg": "image/jpeg",
+    "bmp": "application/x-bmp",
+    "png": "image/png",
+    "gif": "image/gif",
+}
 
 
 def send_mail(host, user, password, to_list, **kwargs):
@@ -112,15 +124,16 @@ def send_mail(host, user, password, to_list, **kwargs):
                 file_content = file_path['file_content']
                 file_name = file_path['file_name']
 
-            disposition = to_str('attachment; filename="%s"') % to_str(file_name)
-            # disposition = to_str(disposition)
+            disposition = "attachment;filename*=UTF-8''{utf_filename}".format(
+                    utf_filename=quote(to_str(file_name).encode('utf-8')))
             # 取文件后缀
             suffix = file_name.split('.')[-1]
             suffix = suffix.lower()
             # 处理图片附件
-            if suffix in ('jpg', 'jpeg', 'bmp', 'png', 'gif',):
+            if suffix in IMAGE_TYPES:
                 image = MIMEImage(file_content)
                 image.add_header('Content-ID', '<image1>')
+                image.add_header('Content-Type', TYPE_NAME.get(suffix, "image/"+suffix))
                 image.add_header('Content-Disposition', disposition)
                 msg.attach(image)
             # 传送 txt 文件
@@ -163,7 +176,7 @@ def send_mail(host, user, password, to_list, **kwargs):
 
 
 if __name__ == '__main__':
-    # 错误信息邮件通知配置
+    # 邮件配置
     host = "smtp.163.com"
     user = "oaxxx@163.com"
     password = "123456"
