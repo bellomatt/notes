@@ -3,7 +3,7 @@
 """
 邮件公用函数(发邮件用)
 Created on 2015/1/15
-Updated on 2019/7/15
+Updated on 2019/8/1
 @author: Holemar
 
 本模块专门供发邮件用,支持html内容及附件
@@ -45,6 +45,19 @@ TYPE_NAME = {
     "png": "image/png",
     "gif": "image/gif",
 }
+
+
+def set_file_name(mime, file_name):
+    """
+    设置附件的文件名
+    :param mime: mime 实例
+    :param file_name: 文件名
+    """
+    if PY2:
+        disposition = "attachment;filename*=UTF-8''{filename}".format(filename=quote(to_str(file_name)))
+        mime.add_header('Content-Disposition', disposition)
+    else:
+        mime.add_header('Content-Disposition', 'attachment', filename=('utf-8', '', file_name))
 
 
 def send_mail(host, user, password, to_list, **kwargs):
@@ -111,6 +124,7 @@ def send_mail(host, user, password, to_list, **kwargs):
     # 添加附件
     if 'files' in kwargs:
         files = kwargs.get('files') or []
+        index = 0
         for file_path in files:
             if isinstance(file_path, basestring):
                 # 文件路径
@@ -124,31 +138,26 @@ def send_mail(host, user, password, to_list, **kwargs):
                 file_content = file_path['file_content']
                 file_name = file_path['file_name']
 
-            disposition = "attachment;filename*=UTF-8''{utf_filename}".format(
-                    utf_filename=quote(to_str(file_name).encode('utf-8')))
             # 取文件后缀
             suffix = file_name.split('.')[-1]
             suffix = suffix.lower()
             # 处理图片附件
             if suffix in IMAGE_TYPES:
-                image = MIMEImage(file_content)
-                image.add_header('Content-ID', '<image1>')
-                image.add_header('Content-Type', TYPE_NAME.get(suffix, "image/"+suffix))
-                image.add_header('Content-Disposition', disposition)
-                msg.attach(image)
+                index += 1
+                mime = MIMEImage(file_content)
+                mime.add_header('Content-ID', '<image%d>' % index)
+                mime.add_header('Content-Type', TYPE_NAME.get(suffix, "image/"+suffix))
             # 传送 txt 文件
             elif suffix == 'txt':
-                att1 = MIMEText(file_content, _subtype='base64', _charset='utf-8')
-                att1["Content-Type"] = 'application/octet-stream'
-                att1["Content-Disposition"] = disposition
-                msg.attach(att1)
+                mime = MIMEText(file_content, _subtype='base64', _charset='utf-8')
+                mime["Content-Type"] = 'application/octet-stream'
             # 其它附件
             else:
-                part = MIMEBase('application', 'octet-stream')  # 'octet-stream': binary data
-                part.set_payload(file_content)
-                encoders.encode_base64(part)
-                part.add_header('Content-Disposition', disposition)
-                msg.attach(part)
+                mime = MIMEBase('application', 'octet-stream')  # 'octet-stream': binary data
+                mime.set_payload(file_content)
+                encoders.encode_base64(mime)
+            set_file_name(mime, file_name)
+            msg.attach(mime)
 
     # 发送邮件
     try:
@@ -180,8 +189,7 @@ if __name__ == '__main__':
     host = "smtp.163.com"
     user = "oaxxx@163.com"
     password = "123456"
-    text = """这是测试内容,见到请忽略...<br/>
-    html代码测试：<font color='red'>红色字体</font>
+    text = """请查收验证码:<font color='red'>88593</font>
     """
     params = {
         'port': 25,  # 默认端口
