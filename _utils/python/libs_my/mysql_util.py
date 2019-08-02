@@ -3,7 +3,7 @@
 """
 公用函数(mysql数据库的操作)
 Created on 2014/7/16
-Updated on 2019/7/24
+Updated on 2019/8/2
 @author: Holemar
 
 依赖第三方库:
@@ -33,7 +33,7 @@ if PY3:
     long = int
 
 
-__all__=('init', 'set_conn', 'get_conn', 'ping', 'select', 'get', 'execute', 'execute_list', 'executemany',
+__all__ = ('init', 'set_conn', 'get_conn', 'ping', 'select', 'get', 'execute', 'execute_list', 'executemany',
          'query_data', 'add_data', 'add_datas', 'del_data', 'update_data', 'format_sql', 'get_table', 'add_sql', 'Atom')
 
 # 数据库线程池
@@ -41,24 +41,24 @@ dbpool = None
 
 # 请求默认值
 CONFIG = {
-    'db':{ # {dict} 数据库连接配置
-         'mincached':2,
-         'maxcached':5,
-         'maxshared':0,
-         'maxconnections':50,
-         'host':'127.0.0.1',
-         'port':3306,
-         'user':'root',
-         'passwd':'',
+    'db': {  # {dict} 数据库连接配置
+         'mincached': 2,
+         'maxcached': 5,
+         'maxshared': 0,
+         'maxconnections': 50,
+         'host': '127.0.0.1',
+         'port': 3306,
+         'user': 'root',
+         'passwd': '',
          'db': 'test',
-         'charset':'utf8',
-         'cursorclass' : DictCursor,
+         'charset': 'utf8',
+         'cursorclass': DictCursor,
      },
-    'warning_time' : 5, # {int} 运行时间过长警告(超过这时间的将会警告,单位:秒)
-    'log_max' : None, # {int} 返回结果输出到日志的最大字符长度，超过次长度的将不输出(值设为 0 或者 None 将不限制)
-    'log_tag' : '', # {string} 日志标志,用来标明这请求的日志是哪个发出的(没有这标志则只能根据参数来猜了)
-    'threads' : False, # {bool} 是否发起多线程去请求,将会不再接收返回值(可节省等待请求返回的时间)
-    'raise_error' : True, # {bool} 遇到操作异常时,是否抛出异常信息(默认抛出)。为 True则会抛出异常信息,否则不抛出
+    'warning_time': 5,  # {int} 运行时间过长警告(超过这时间的将会警告,单位:秒)
+    'log_max': None,  # {int} 返回结果输出到日志的最大字符长度，超过次长度的将不输出(值设为 0 或者 None 将不限制)
+    'log_tag': '',  # {string} 日志标志,用来标明这请求的日志是哪个发出的(没有这标志则只能根据参数来猜了)
+    'threads': False,  # {bool} 是否发起多线程去请求,将会不再接收返回值(可节省等待请求返回的时间)
+    'raise_error': True,  # {bool} 遇到操作异常时,是否抛出异常信息(默认抛出)。为 True则会抛出异常信息,否则不抛出
 }
 
 
@@ -144,10 +144,12 @@ def get_conn(repeat_time=3):
             repeat_time -= 1
             logging.error('[red]mysql connection error:%s[/red]', e, exc_info=True, extra={'color':True})
             try:
-                if cursor:cursor.close()
+                if cursor:
+                    cursor.close()
             except:pass
             try:
-                if conn:conn.close()
+                if conn:
+                    conn.close()
             except:pass
     return conn, cursor
 
@@ -181,8 +183,8 @@ def _init_execute(func):
             kwargs['function'] = func # 为了传递给线程
             kwargs['log_tag'] = u'异步执行%s' % log_tag
             th = threading.Thread(target=wrapper, args=args, kwargs=kwargs)
-            th.start() # 启动这个线程
-            return th # 返回这个线程,以便 join 多个异步请求
+            th.start()  # 启动这个线程
+            return th  # 返回这个线程,以便 join 多个异步请求
 
         log_max = kwargs.pop('log_max', CONFIG.get('log_max', None))
         warning_time = kwargs.pop('warning_time', CONFIG.get('warning_time', 5))
@@ -196,7 +198,7 @@ def _init_execute(func):
             kwargs['cursor'] = cursor
         # 执行SQL
         method = kwargs.pop('function', None) or func
-        result =  method(*args, **kwargs)
+        result = method(*args, **kwargs)
         # 关闭数据库连接
         close_conn(conn, cursor)
         # 判断运行时间是否太长
@@ -214,15 +216,35 @@ def _init_execute(func):
         if len(log_res) <= 10:
             log_msg = u"%s 返回:%s, 执行:%s" % (log_tag, log_res, log_param)
         if use_time >= warning_time:
-            logging.warn(u"[yellow]SQL执行时间太长[/yellow], 耗时 %.4f 秒, %s" , use_time, log_msg, extra={'color':True})
+            logging.warning(u"[yellow]SQL执行时间太长[/yellow], 耗时 %.4f 秒, %s" , use_time, log_msg, extra={'color': True})
         else:
             logging.info(u"SQL, 耗时 %.4f 秒, %s" , use_time, log_msg)
         return result
+    wrapper.__doc__ = func.__doc__
     return wrapper
 
 
 @_init_execute
-def __select(sql, param=None, fetchone=False, **kwargs):
+def select(sql, param=None, fetchone=False, **kwargs):
+    """
+    查询SQL结果
+    :param {string} sql: 要查询的 SQL 语句，如果有查询条件，请只指定条件列表，并将条件值使用参数[param]传递进来
+    :param {tuple|list|dict} param: 可选参数，条件列表值
+    :param {bool|int} fetchone: 为 True则只返回第一条结果, 为False则返回所有的查询结果, 为 int 类型则返回指定的条数
+    :param {bool} raise_error: 遇到操作异常时,是否抛出异常信息。为 True则会抛出异常信息,否则不抛出,默认抛出,默认抛出
+    :param {int} log_max: 返回结果输出到日志的最大字符长度，超过次长度的将不输出(值设为 0 或者 None 将不限制, 默认按日志模块的最大限制)
+    :param {string} log_tag: 日志标志,用来标明这请求的日志是哪个发出的(没有这标志则只能根据参数来猜了,默认为空字符串)
+    :param {int} warning_time: 运行时间过长警告(超过这时间的将会警告,单位:秒,默认5秒)
+    :param {bool} threads: 是否发起多线程去请求,将会不再接收返回值(可节省等待请求返回的时间,默认不发起)
+    :param conn: 数据库连接(有传则使用传来的,没有则自动获取,便于使用事务)
+    :param cursor: 数据库连接的 Cursor Object(有传则使用传来的,没有则自动获取,便于使用事务)
+    :return {tuple<dict> | dict}:
+        当 参数 fetchone 为 True 时, 返回SQL查询的结果(dict类型),查不到返回 None
+        当 参数 fetchone 为 False 时, 返回SQL查询结果集,查不到时返回空的 tuple
+    @example
+        results = select("SELECT * FROM product_log WHERE flag=%s AND v=%s", param=('n','1.2.0',))
+        或者 results = select("SELECT * FROM product_log WHERE flag=%(flag)s AND v=%(v)s", param={'flag':'n', 'v':'1.2.0'})
+    """
     try:
         result = None
         cursor = kwargs.get('cursor', None)
@@ -244,37 +266,14 @@ def __select(sql, param=None, fetchone=False, **kwargs):
             return cursor.fetchmany(fetchone)
         else:
             return cursor.fetchall()
-    except:
-        logging.error(u"[red]查询失败[/red]:%s, %s, 返回:%s" , sql, param, result, exc_info=True, extra={'color':True})
+    except Exception as e:
+        logging.error(u"[red]查询失败:%s[/red]:%s, %s, 返回:%s", e, sql, param, result, exc_info=True, extra={'color': True})
         global CONFIG
         raise_error = kwargs.get('raise_error', CONFIG.get('raise_error', True))
         if raise_error:
             raise
         else:
             return False
-
-
-def select(sql, param=None, fetchone=False, **kwargs):
-    """
-    查询SQL结果
-    :param {string} sql: 要查询的 SQL 语句，如果有查询条件，请只指定条件列表，并将条件值使用参数[param]传递进来
-    :param {tuple|list|dict} param: 可选参数，条件列表值
-    :param {bool|int} fetchone: 为 True则只返回第一条结果, 为False则返回所有的查询结果, 为 int 类型则返回指定的条数
-    :param {bool} raise_error: 遇到操作异常时,是否抛出异常信息。为 True则会抛出异常信息,否则不抛出,默认抛出,默认抛出
-    :param {int} log_max: 返回结果输出到日志的最大字符长度，超过次长度的将不输出(值设为 0 或者 None 将不限制, 默认按日志模块的最大限制)
-    :param {string} log_tag: 日志标志,用来标明这请求的日志是哪个发出的(没有这标志则只能根据参数来猜了,默认为空字符串)
-    :param {int} warning_time: 运行时间过长警告(超过这时间的将会警告,单位:秒,默认5秒)
-    :param {bool} threads: 是否发起多线程去请求,将会不再接收返回值(可节省等待请求返回的时间,默认不发起)
-    :param conn: 数据库连接(有传则使用传来的,没有则自动获取,便于使用事务)
-    :param cursor: 数据库连接的 Cursor Object(有传则使用传来的,没有则自动获取,便于使用事务)
-    :return {tuple<dict> | dict}:
-        当 参数 fetchone 为 True 时, 返回SQL查询的结果(dict类型),查不到返回 None
-        当 参数 fetchone 为 False 时, 返回SQL查询结果集,查不到时返回空的 tuple
-    @example
-        results = select("SELECT * FROM product_log WHERE flag=%s AND v=%s", param=('n','1.2.0',))
-        或者 results = select("SELECT * FROM product_log WHERE flag=%(flag)s AND v=%(v)s", param={'flag':'n', 'v':'1.2.0'})
-    """
-    return __select(sql, param=param, fetchone=fetchone, **kwargs)
 
 
 def get(sql, param=None, **kwargs):
@@ -299,38 +298,6 @@ def get(sql, param=None, **kwargs):
 
 
 @_init_execute
-def __execute(sql, param=None, clash=1, rowid=False, transaction=True, **kwargs):
-    try:
-        conn = kwargs.get('conn', None)
-        cursor = kwargs.get('cursor', None)
-        # 开启事务
-        #if transaction: conn.autocommit(0)
-        if param is None:
-            row = cursor.execute(sql)
-        else:
-            row = cursor.execute(sql, param)
-        # 插入,返回主键
-        if rowid and sql.strip().lower().startswith('insert '):
-            row = cursor.lastrowid or row # 如果表没有主键,则 lastrowid 会为0
-        #else:
-        #    row = cursor.rowcount # 其实这行不写也行,前面已经返回了影响行数
-        if transaction: conn.commit()
-        return row
-    #主键冲突,或者唯一键冲突,重复insert,忽略错误
-    except MySQLdb.IntegrityError:
-        logging.warn(u"[yellow]主键冲突[/yellow]:%s, %s" , sql, param, extra={'color':True})
-        return clash
-    except Exception as e:
-        logging.error(u"[red]执行失败[/red]:%s, SQL:%s, 参数:%s" , e, sql, param, exc_info=True, extra={'color':True})
-        if transaction and conn: conn.rollback()
-        global CONFIG
-        raise_error = kwargs.get('raise_error', CONFIG.get('raise_error', True))
-        if raise_error:
-            raise
-        else:
-            return  -1
-
-
 def execute(sql, param=None, clash=1, rowid=False, transaction=True, **kwargs):
     """
     执行SQL语句(增删改操作)
@@ -351,29 +318,31 @@ def execute(sql, param=None, clash=1, rowid=False, transaction=True, **kwargs):
         row = execute("INSERT INTO product_log(uid,v) VALUES (%s,%s)", (20125412, '1.2.3', ))
         或者 row = execute("INSERT INTO product_log (uid,v) VALUES (%(uid)s, %(v)s)", {'uid':20125412, 'v':'1.2.3'})
     """
-    return __execute(sql, param=param, clash=clash, rowid=rowid, transaction=transaction, **kwargs)
-
-
-@_init_execute
-def __executemany(sql, param, clash=1, transaction=True, **kwargs):
     try:
         conn = kwargs.get('conn', None)
         cursor = kwargs.get('cursor', None)
         # 开启事务
-        #if transaction: conn.autocommit(0)
+        # if transaction: conn.autocommit(0)
         if param is None:
-            row = cursor.executemany(sql)
+            row = cursor.execute(sql)
         else:
-            row = cursor.executemany(sql, param)
-        if transaction: conn.commit()
+            row = cursor.execute(sql, param)
+        # 插入,返回主键
+        if rowid and sql.strip().lower().startswith('insert '):
+            row = cursor.lastrowid or row  # 如果表没有主键,则 lastrowid 会为0
+        # else:
+        #    row = cursor.rowcount # 其实这行不写也行,前面已经返回了影响行数
+        if transaction:
+            conn.commit()
         return row
-    #主键冲突,或者唯一键冲突,重复insert,忽略错误
+    # 主键冲突,或者唯一键冲突,重复insert,忽略错误
     except MySQLdb.IntegrityError:
-        logging.warn(u"[yellow]主键冲突[/yellow]:%s, %s" , sql, param, extra={'color':True})
+        logging.warning(u"[yellow]主键冲突[/yellow]:%s, %s", sql, param, extra={'color': True})
         return clash
     except Exception as e:
-        logging.error(u"[red]执行失败[/red]:%s, SQL:%s, 参数:%s" , e, sql, param, exc_info=True, extra={'color':True})
-        if transaction and conn: conn.rollback()
+        logging.error(u"[red]执行失败[/red]:%s, SQL:%s, 参数:%s", e, sql, param, exc_info=True, extra={'color': True})
+        if transaction and conn:
+            conn.rollback()
         global CONFIG
         raise_error = kwargs.get('raise_error', CONFIG.get('raise_error', True))
         if raise_error:
@@ -382,6 +351,7 @@ def __executemany(sql, param, clash=1, transaction=True, **kwargs):
             return -1
 
 
+@_init_execute
 def executemany(sql, param, clash=1, transaction=True, **kwargs):
     """
     执行SQL语句(增删改操作), 同一个SQL语句,执行不同的多个参数
@@ -401,7 +371,32 @@ def executemany(sql, param, clash=1, transaction=True, **kwargs):
         row = executemany("INSERT INTO product_log(uid,v) VALUES (%s,%s)", [(20125412, '1.2.3', ),(20125413, '2.0.3', ),(56721, '2.32.3', )])
         或者 row = executemany("INSERT INTO product_log (uid,v) VALUES (%(uid)s, %(v)s)", [{'uid':20125412, 'v':'1.2.3'},{'uid':56721, 'v':'2.32.3'}])
     """
-    return __executemany(sql, param=param, clash=clash, transaction=transaction, **kwargs)
+    try:
+        conn = kwargs.get('conn', None)
+        cursor = kwargs.get('cursor', None)
+        # 开启事务
+        # if transaction: conn.autocommit(0)
+        if param is None:
+            row = cursor.executemany(sql)
+        else:
+            row = cursor.executemany(sql, param)
+        if transaction:
+            conn.commit()
+        return row
+    # 主键冲突,或者唯一键冲突,重复insert,忽略错误
+    except MySQLdb.IntegrityError:
+        logging.warning(u"[yellow]主键冲突[/yellow]:%s, %s", sql, param, extra={'color':True})
+        return clash
+    except Exception as e:
+        logging.error(u"[red]执行失败[/red]:%s, SQL:%s, 参数:%s", e, sql, param, exc_info=True, extra={'color': True})
+        if transaction and conn:
+            conn.rollback()
+        global CONFIG
+        raise_error = kwargs.get('raise_error', CONFIG.get('raise_error', True))
+        if raise_error:
+            raise
+        else:
+            return -1
 
 
 def execute_list(sql_list, must_rows=False, transaction=True, **kwargs):
@@ -430,19 +425,33 @@ def execute_list(sql_list, must_rows=False, transaction=True, **kwargs):
             kwargs['conn'] = conn
             kwargs['cursor'] = cursor
         # 开启事务
-        #if transaction: conn.autocommit(0)
+        # if transaction: conn.autocommit(0)
         row = 0
         kwargs.pop('rowid', None)
-        for sql, param in sql_list:
-            this_row = execute(sql, param, clash=1, raise_error=True, rowid=False, transaction=False, **kwargs)
+        for args in sql_list:
+            # 取出 sql 及 参数
+            if isinstance(args, (list, tuple)):
+                length = len(args)
+                if length == 0:
+                    continue
+                elif length == 1:
+                    sql, param = args[0], None
+                else:
+                    sql, param = args[0], args[1]
+            elif isinstance(args, str):
+                sql, param = args, None
+            else:
+                raise RuntimeError('其中一条参数无法解析:%s' % args)
+            this_row = execute(sql, param=param, clash=1, raise_error=True, rowid=False, transaction=False, **kwargs)
             if must_rows and this_row <= 0:
-                raise RuntimeError(u'其中一条执行失败,影响行数为%s, SQL:%s, %s' % (this_row, sql, param))
+                raise RuntimeError('其中一条执行失败,影响行数为%s, SQL:%s, param:%s' % (this_row, sql, param))
             row += this_row
         if transaction: conn.commit()
         return row
     except Exception as e:
-        logging.error(u"[red]执行失败[/red]:%s, SQL:" % (e, sql_list), exc_info=True, extra={'color':True})
-        if transaction and conn: conn.rollback()
+        logging.error("执行失败:%s, SQL:%s", e, sql_list, exc_info=True)
+        if transaction and conn:
+            conn.rollback()
         global CONFIG
         raise_error = kwargs.get('raise_error', CONFIG.get('raise_error', True))
         if raise_error:
@@ -647,12 +656,12 @@ def add_sql(table, param, **kwargs):
     return sql
 
 
-class Atom:
+class Atom(object):
     """
     使用事务,原子地操作多个语句时,可使用本类
     注:同一个实例无法完美支持多线程操作,故去掉多线程
     """
-    #连接池对象
+    # 连接池对象
     __pool = {}
     __lock = threading.Lock()
 
@@ -664,14 +673,14 @@ class Atom:
         """
         conn, cursor, db_key = Atom.__get_conn(**kwargs)
         if not conn:
-            logging.error('[red]mysql connection error[/red], new Atom() fail', extra={'color':True})
+            logging.error('[red]mysql connection error[/red], new Atom() fail', extra={'color': True})
             raise RuntimeError(u"mysql 数据库连接不上")
         # 开启事务
         conn.autocommit(0)
         self.conn = conn
         self.cursor = cursor
         self.db_key = db_key
-        self.other_params = {'conn' : conn, 'cursor': cursor, 'transaction':False, 'threads':False} # 额外参数
+        self.other_params = {'conn': conn, 'cursor': cursor, 'transaction': False, 'threads': False}  # 额外参数
 
     @staticmethod
     def __get_conn(repeat_time=3, **kwargs):
@@ -715,15 +724,17 @@ class Atom:
                     cursor = conn.cursor()
                     return conn, cursor, db_key
                 except Exception as e:
-                    logging.error(u'[red]mysql connection error[/red]:%s' , e, exc_info=True, extra={'color':True})
+                    logging.error(u'[red]mysql connection error[/red]:%s', e, exc_info=True, extra={'color': True})
                     raise
             # 连接超时或已断开
             except Exception as e:
                 repeat_time -= 1
-                logging.error(u'[red]mysql connection error[/red]:%s' , e, exc_info=True, extra={'color':True})
+                logging.error(u'[red]mysql connection error[/red]:%s', e, exc_info=True, extra={'color': True})
                 try:
-                    if cursor: cursor.close()
-                    if conn: conn.close()
+                    if cursor:
+                        cursor.close()
+                    if conn:
+                        conn.close()
                 except:pass
         return conn, cursor, db_key
 
@@ -732,9 +743,11 @@ class Atom:
         """
         使用完数据库连接,放回线程池
         """
-        if conn: Atom.__pool[db_key].add(conn)
+        if conn:
+            Atom.__pool[db_key].add(conn)
         try:
-            if cursor: cursor.close()
+            if cursor:
+                cursor.close()
         except:pass
 
     def commit(self, dispose=True):
@@ -745,7 +758,7 @@ class Atom:
         self.conn.commit()
         if dispose:
             self.dispose()
-        logging.info(u'事务提交完成,销毁对象:%s' , dispose)
+        logging.info(u'事务提交完成,销毁对象:%s', dispose)
 
     def rollback(self, dispose=True):
         """
@@ -755,7 +768,7 @@ class Atom:
         self.conn.rollback()
         if dispose:
             self.dispose()
-        logging.info(u'事务回滚完成,销毁对象:%s' , dispose)
+        logging.info(u'事务回滚完成,销毁对象:%s', dispose)
 
     def dispose(self):
         """
@@ -784,7 +797,7 @@ class Atom:
         u'''%(doc)s'''; # 生成 docstring
         kwargs.update(self.other_params); # 设置额外参数
         res = %(function)s(*args, **kwargs); # 调用本文件的对应操作函数
-        return res;""" % {'function': __function, 'doc':__doc})
+        return res;""" % {'function': __function, 'doc': __doc})
     # 删除上面产生的临时变量,避免遗留在这类里面
     del __doc
     del __function

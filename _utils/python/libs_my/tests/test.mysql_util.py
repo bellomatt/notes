@@ -3,7 +3,7 @@
 """
 公用函数(数据库处理) mysql_util.py 的测试
 Created on 2014/7/16
-Updated on 2019/7/24
+Updated on 2019/8/2
 @author: Holemar
 """
 import logging
@@ -84,7 +84,6 @@ class MysqlToolsTest(unittest.TestCase):
         rows = self.db.execute("INSERT INTO test_table(playlist_id,status,update_date) VALUES (%(playlist_id)s, %(status)s, %(update_date)s)", {'status':'inactive', 'playlist_id':55, 'update_date':time.strftime('%Y-%m-%d %H:%M:%S')})
         assert rows == 1
 
-
     def test_rowid_select(self):
         # 获取 rowid
         logging.warning('execute 获取 rowid 测试')
@@ -115,7 +114,6 @@ class MysqlToolsTest(unittest.TestCase):
         result = self.db.select("SELECT * FROM test_table WHERE status=%s AND playlist_id=%s", param=['active', 1011])
         assert len(result) == 3
 
-
         # fetchone 指定查询结果返回数量
         result = self.db.select("SELECT * FROM test_table ")
         assert len(result) == 4
@@ -131,7 +129,6 @@ class MysqlToolsTest(unittest.TestCase):
         assert len(result) == 4
         result = self.db.select("SELECT * FROM test_table ", fetchone=False)
         assert len(result) == 4
-
 
     def test_executemany(self):
         # executemany
@@ -149,16 +146,33 @@ class MysqlToolsTest(unittest.TestCase):
         result = self.db.select('select * from test_table where circle_code=%s', '-')
         assert len(result) == 2
 
-
     def test_execute_list(self):
         # execute_list
         logging.warning('execute_list 测试')
-        rows = self.db.execute_list([("insert into test_table(playlist_id, status) values(33, 'inactive')",None),("insert into test_table(playlist_id, status) values(44, 'inactive')",None)], must_rows=True)
-        assert rows == 2
+        rows = self.db.execute_list([
+            "insert into test_table(playlist_id, status) values(33, 'inactive')",
+            "insert into test_table(playlist_id, status) values(44, 'inactive')"
+        ], must_rows=True)
+        self.assertEqual(rows, 2, 'execute_list 返回值不合格')
+
+        rows = self.db.execute_list([
+            ("insert into test_table(playlist_id, status) values(%s, %s)", [123, 'inactive']),
+            ("insert into test_table(playlist_id, status) values(%(playlist_id)s, %(status)s)",
+             {'status': 'active', 'playlist_id': 166})
+        ], must_rows=True)
+        self.assertEqual(rows, 2, 'execute_list 返回值不合格')
 
         result = self.db.select("SELECT * FROM test_table ")
-        assert len(result) == 2
+        assert len(result) == 4
 
+    def test_doc(self):
+        # 每个变量都有文档
+        logging.warning('函数文档 测试')
+        functions = self.db.__all__
+        # logging.warning(functions)
+        for function in functions:
+            if function.startswith('_'): continue
+            self.assertTrue(bool(getattr(mysql_util, function).__doc__), '%s函数没有文档' % function)
 
     def test_threads(self):
         # 异步测试
@@ -174,7 +188,6 @@ class MysqlToolsTest(unittest.TestCase):
         result = self.db.select('select * from test_table where playlist_id=%s', 2233)
         assert len(result) == 2
 
-
     def test_format_sql(self):
         # 格式化字符串函数测试
         logging.warning('格式化字符串函数 测试')
@@ -189,7 +202,6 @@ class MysqlToolsTest(unittest.TestCase):
             "INSERT INTO `test_table` (`a`, `c`, `b`) VALUES (%(a)s, %(c)s, %(b)s)",  # py2
             "INSERT INTO `test_table` (`a`, `b`, `c`) VALUES (%(a)s, %(b)s, %(c)s)",  # py3
         )
-
 
     def test_query_data(self):
         rows = self.db.execute("insert into test_table(playlist_id, status) values(2233, 'inactive')")
@@ -207,7 +219,6 @@ class MysqlToolsTest(unittest.TestCase):
         assert len(results2) == 2
         assert results2[0].get('id') > results2[1].get('id')
 
-
     def test_add_data(self):
         # add_data
         logging.warning('add_data 测试')
@@ -223,7 +234,6 @@ class MysqlToolsTest(unittest.TestCase):
         result = self.db.query_data('test_table', {"circle_code":"e'e''e"})
         assert len(result) == 3
 
-
     def test_add_datas(self):
         # add_datas (是 add_data 函数的多条执行模式)
         logging.warning('add_datas 测试')
@@ -232,7 +242,6 @@ class MysqlToolsTest(unittest.TestCase):
 
         result = self.db.query_data('test_table', {"circle_code":u"哎f'f''哈"}) # 中文参数+特殊符号
         assert len(result) == 1
-
 
     def test_update_data(self):
         rows = self.db.add_datas([('test_table',{"circle_code":"e'e''e",'playlist_id':221, 'update_date':datetime.datetime.now()}),('test_table',{'playlist_id':443,'circle_code':u"哎f'f''哈", 'update_date':time.strftime('%Y-%m-%d %H:%M:%S')})])
@@ -260,7 +269,6 @@ class MysqlToolsTest(unittest.TestCase):
         assert rows == 1
         assert len(self.db.query_data('test_table', {"playlist_id":1443})) == 1
         assert len(self.db.query_data('test_table', {"playlist_id":443})) == 0
-
 
     def test_del_data(self):
         rows = self.db.add_data('test_table',{"circle_code":"e'e''e",'playlist_id':221, 'update_date':datetime.datetime.now()})
@@ -297,7 +305,6 @@ class Test_Atom1(MysqlToolsTest):
         self.db = None
         logging.info(u'%s 类的 %s 函数测试完毕。。。\r\n', self.class_name, self._testMethodName)
 
-
     def test_doc(self):
         # 每个变量都有文档
         logging.warning('Atom 文档 测试')
@@ -308,11 +315,9 @@ class Test_Atom1(MysqlToolsTest):
             # logging.warning("%s.__doc__: %s" % (function, getattr(mysql_util.Atom, function).__doc__))
             assert bool(getattr(mysql_util.Atom, function).__doc__)
 
-
     def test_threads(self):
         # 异步 测试
         logging.warning('Atom 异步测试, 此功能已去掉, 故无法测试')
-
 
     def test_rollback(self):
         logging.warning('Atom rollback 测试')
@@ -330,7 +335,6 @@ class Test_Atom1(MysqlToolsTest):
         # 类外查询
         result = mysql_util.select('select * from test_table')
         assert len(result) == 0
-
 
     def test_commit(self):
         logging.warning('Atom commit 测试')
