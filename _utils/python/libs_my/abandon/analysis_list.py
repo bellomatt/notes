@@ -6,6 +6,7 @@ Created on 2017/4/27
 Updated on 2019/1/18
 @author: Holemar
 """
+from __init__ import *
 
 
 class VirtualObject(object):
@@ -113,7 +114,8 @@ class MultiLineAnalysis(object):
         cols = set() # 由于某些数据类型的可能没有记录，所以得记录并且在后面补上
         for obj in data:
             keys = tuple([str(getattr(obj, col)) for col in group_columns])
-            virtual_obj = data_dict.setdefault(keys, VirtualObject(**{col_name:getattr(obj, col_name) for col_name in group_columns}))
+            kw = dict([(_col_name,getattr(obj, _col_name)) for _col_name in group_columns])
+            virtual_obj = data_dict.setdefault(keys, VirtualObject(**kw))
             col = getattr(obj, col_name)
             cols.add(col)
             value = getattr(obj, value_col_name) or 0

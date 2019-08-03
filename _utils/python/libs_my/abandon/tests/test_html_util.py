@@ -10,7 +10,7 @@ import logging
 import unittest
 
 from __init__ import *
-from libs_my import html_util
+from libs_my.abandon import html_util
 
 
 class TestXhtml(unittest.TestCase):

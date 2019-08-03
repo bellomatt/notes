@@ -11,7 +11,7 @@ import logging
 import unittest
 
 from __init__ import *
-from libs_my.analysis_list import VirtualObject, MultiLineAnalysis, MultiColumnsAnalysis
+from libs_my.abandon.analysis_list import VirtualObject, MultiLineAnalysis, MultiColumnsAnalysis
 
 
 def create_MultiLine_data():

@@ -10,7 +10,7 @@ import os
 import unittest
 
 from __init__ import *
-from libs_my import load
+from libs_my.abandon import load
 
 class LoadTest(unittest.TestCase):
     def test_get_path(self):
@@ -24,11 +24,11 @@ class LoadTest(unittest.TestCase):
         assert load.get_path('../zh-CN', current_path="C:\\Windows\\System32\\com\\en-US\\comrepl.exe.mui") == "C:\\Windows\\System32\\com\\zh-CN\\"
 
     def test_load_modules(self):
-        module_list = load.load_modules(file_name='test_enum.py', path='.')
-        assert len(module_list) == 1
-        Const = module_list[0].Const
-        assert Const # 能获取到这个类
-        class Platform(Const): pass # 继承这个类不报错，说明获取成功
+        module_list = load.load_modules(file_name='test_analysis_list.py', path='.')
+        self.assertEqual(len(module_list), 1)
+        VirtualObject = module_list[0].VirtualObject
+        assert VirtualObject # 能获取到这个类
+        VirtualObject(year=2016, month=12, data_type='cost', value=5) # 使用这个类不报错，说明获取成功
 
 if __name__ == "__main__":
     unittest.main()

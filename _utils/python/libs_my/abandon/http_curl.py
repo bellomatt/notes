@@ -15,8 +15,8 @@ import urllib2
 
 import curl, pycurl # 依赖第三方库: curl, pycurl
 
-from . import http_util
-from .http_util import *
+from libs_my import http_util
+from libs_my.http_util import *
 
 def send(url, param=None, method='GET', **kwargs):
     """

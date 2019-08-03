@@ -266,10 +266,10 @@ class TimeUtilTest(unittest.TestCase):
         t1 = now() + datetime.timedelta(days=1)
         assert sub(t1, now()) == one_days # 相差 1 天
         assert sub(now(), t1) == {'years' : 0, 'months' : 0, 'days' : -1, 'hours' : 0, 'minutes' : 0, 'seconds' : 0, 'sum_days':-1, 'sum_seconds':-24 * 60 * 60} # 相差 -1 天
-        assert sub(now(), t1, abs=True) == one_days # 绝对值相差 1 天
+        self.assertEqual(sub(now(), t1, abs=True), one_days) # 绝对值相差 1 天
         # 时分秒判断
-        assert sub(now(), now() - datetime.timedelta(hours=1)) == {'years' : 0, 'months' : 0, 'days' : 0, 'hours' : 1, 'minutes' : 0, 'seconds' : 0,'sum_days':0, 'sum_seconds':60 * 60} # 相差 1 小时
-        assert sub(now(), now() + datetime.timedelta(hours=2)) == {'years' : 0, 'months' : 0, 'days' : 0, 'hours' : -2, 'minutes' : 0, 'seconds' : 0,'sum_days':0, 'sum_seconds':-2*60 * 60} # 相差 -2 小时
+        self.assertEqual(sub(now(), now() - datetime.timedelta(hours=1)), {'years' : 0, 'months' : 0, 'days' : 0, 'hours' : 1, 'minutes' : 0, 'seconds' : 0,'sum_days':0, 'sum_seconds':60 * 60}) # 相差 1 小时
+        self.assertEqual(sub(now(), now() + datetime.timedelta(hours=2)), {'years' : 0, 'months' : 0, 'days' : 0, 'hours' : -2, 'minutes' : 0, 'seconds' : 0,'sum_days':0, 'sum_seconds':-2*60 * 60}) # 相差 -2 小时
         assert sub(now(), now() + datetime.timedelta(hours=2), abs=True) == {'years' : 0, 'months' : 0, 'days' : 0, 'hours' : 2, 'minutes' : 0, 'seconds' : 0,'sum_days':0, 'sum_seconds':2*60 * 60} # 相差 2 小时
         assert sub(now(), now() - datetime.timedelta(minutes=35)) == {'years' : 0, 'months' : 0, 'days' : 0, 'hours' : 0, 'minutes' : 35, 'seconds' : 0,'sum_days':0, 'sum_seconds':35 * 60} # 相差 35 分钟
         assert sub(now(), now() + datetime.timedelta(minutes=32)) == {'years' : 0, 'months' : 0, 'days' : 0, 'hours' : 0, 'minutes' : -32, 'seconds' : 0,'sum_days':0, 'sum_seconds':-32 * 60} # 相差 -32 分钟

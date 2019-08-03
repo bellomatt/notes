@@ -10,7 +10,7 @@ import sys
 import unittest
 
 from __init__ import *
-from libs_my import parser_util
+from libs_my.abandon import parser_util
 
 class ParserUtilTest(unittest.TestCase):
 

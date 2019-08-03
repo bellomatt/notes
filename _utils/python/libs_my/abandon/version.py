@@ -13,7 +13,8 @@ import time
 import types
 import logging
 
-from . import str_util, html_util
+from __init__ import *
+from libs_my import str_util, html_util
 
 __all__=('init', 'get_version')
 logger = logging.getLogger('libs_my.version')

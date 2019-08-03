@@ -55,7 +55,7 @@ def load_modules(file_name='*.py', path=None):
             module_name, ext = os.path.splitext(os.path.basename(module_file))
             module = __import__(module_name)
             module_list.append(module)
-        except ImportError, e:
+        except ImportError as e:
             logging.error(u"加载模块出错:%s" % e, exc_info=True)
     return module_list
 

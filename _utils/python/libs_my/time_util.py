@@ -247,7 +247,7 @@ def _str_2_datetime(value, format_str=None):
         if kw['microsecond']:
             kw['microsecond'] = kw['microsecond'].ljust(6, '0')
         kw.pop('tzinfo') # utc 暂时不支持这定义
-        kw = {k: int(v) for k, v in kw.items() if v is not None}
+        kw = dict([(k, int(v)) for k, v in kw.items() if v is not None])
         return datetime.datetime(**kw)
 
     # 含中文，或者特殊格式，只能尽量尝试匹配

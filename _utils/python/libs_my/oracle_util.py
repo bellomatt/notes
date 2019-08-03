@@ -3,7 +3,7 @@
 """
 公用函数(oracle数据库的操作)
 Created on 2019/7/31
-Updated on 2019/7/31
+Updated on 2019/8/2
 @author: Holemar
 
 依赖第三方库:

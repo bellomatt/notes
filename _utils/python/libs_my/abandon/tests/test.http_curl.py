@@ -20,7 +20,7 @@ import unittest
 import threading
 
 from __init__ import *
-from libs_my import http_curl as http_util
+from abandon import http_curl as http_util
 from libs_my import str_util, tornado_util
 
 # 用 Filter 类获取日志信息
