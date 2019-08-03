@@ -11,7 +11,7 @@ import os
 import logging
 import unittest
 
-import __init__
+from __init__ import *
 from libs_my.file_util import *
 
 tem_file = './_test.txt'

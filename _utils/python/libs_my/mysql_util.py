@@ -19,7 +19,8 @@ import threading
 
 try:
     import pymysql as MySQLdb
-    MySQLdb.install_as_MySQLdb() # 这两行可以用 pymysql 代替 import MySQLdb
+    # MySQLdb.install_as_MySQLdb() # 这两行可以用 pymysql 代替 import MySQLdb
+    sys.modules["MySQLdb"] = sys.modules["_mysql"] = sys.modules["pymysql"] = MySQLdb
 except:
     import MySQLdb # 没有安装 pymysql,则使用 MySQLdb
 

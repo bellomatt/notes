@@ -12,7 +12,7 @@ import logging
 import datetime
 import unittest
 
-import __init__
+from __init__ import *
 from libs_my import cache_redis as cache
 
 # 测试用的类

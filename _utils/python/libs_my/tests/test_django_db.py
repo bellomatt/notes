@@ -10,7 +10,7 @@ import logging
 import unittest
 import datetime
 
-import __init__
+from __init__ import *
 from django.db import models
 from django.conf import settings
 

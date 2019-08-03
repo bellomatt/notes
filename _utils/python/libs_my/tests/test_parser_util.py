@@ -9,7 +9,7 @@ Updated on 2019/1/18
 import sys
 import unittest
 
-import __init__
+from __init__ import *
 from libs_my import parser_util
 
 class ParserUtilTest(unittest.TestCase):

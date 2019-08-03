@@ -15,7 +15,7 @@ import uuid
 import datetime
 import unittest
 
-import __init__
+from __init__ import *
 from libs_my import str_util
 
 

@@ -11,7 +11,7 @@ import logging
 import unittest
 import time, datetime
 
-import __init__
+from __init__ import *
 from libs_my import oracle_util
 
 

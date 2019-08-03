@@ -10,7 +10,7 @@ import os
 import logging
 import unittest
 
-import __init__
+from __init__ import *
 from libs_my import log_util, file_util
 
 logfile = './_log_util.log'

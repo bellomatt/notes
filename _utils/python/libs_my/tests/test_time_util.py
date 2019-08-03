@@ -11,7 +11,7 @@ import datetime
 import calendar
 import unittest
 
-import __init__
+from __init__ import *
 from libs_my.time_util import *
 
 class TimeUtilTest(unittest.TestCase):

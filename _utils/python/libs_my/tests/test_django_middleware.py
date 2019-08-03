@@ -14,7 +14,7 @@ import datetime
 import unittest
 import threading
 
-import __init__
+from __init__ import *
 from django.test import TestCase
 from django.conf import settings
 from django.http import HttpResponse

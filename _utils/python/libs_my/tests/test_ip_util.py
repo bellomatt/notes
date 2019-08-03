@@ -10,7 +10,7 @@ import time
 import logging
 import unittest
 
-import __init__
+from __init__ import *
 from libs_my import ip_util
 
 class IpUtilTest(unittest.TestCase):

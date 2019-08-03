@@ -10,7 +10,7 @@ import time
 import logging
 import unittest
 
-import __init__
+from __init__ import *
 from libs_my import aes
 #from libs_my import aes_c as aes
 
@@ -38,7 +38,7 @@ class AES_Test(unittest.TestCase):
         txt = u'15呵呵5@#E$$@#gh，。h()_=154中文4*4616'
         secret_txt = aes.encryptData(txt, key)
         assert secret_txt
-        assert aes.decryptData(secret_txt, key) == txt
+        self.assertEqual(aes.decryptData(secret_txt, key), txt)
 
     def test_param(self):
         # 明文参数为空测试
@@ -89,7 +89,7 @@ class AES_Test(unittest.TestCase):
 
     def test_stress(self):
         # 性能 测试
-        repeat_times = 100
+        repeat_times = 10
         txt = '15呵呵5@#E$$@#gh，。h()_=154中文4*4616' * 10
 
         start_time = time.time()

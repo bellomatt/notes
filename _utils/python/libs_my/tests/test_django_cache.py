@@ -13,7 +13,7 @@ import logging
 import datetime
 import unittest
 
-import __init__
+from __init__ import *
 from django.db import models
 from django.test import TestCase
 from django.conf import settings

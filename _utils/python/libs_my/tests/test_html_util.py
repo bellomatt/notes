@@ -9,7 +9,7 @@ Updated on 2019/1/18
 import logging
 import unittest
 
-import __init__
+from __init__ import *
 from libs_my import html_util
 
 

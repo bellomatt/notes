@@ -13,11 +13,18 @@ import sys
 import logging
 import unittest
 
-# 避免编码问题导致报错
-try:
-    reload(sys)
-    sys.setdefaultencoding('utf8')
-except:pass
+PY2 = sys.version_info[0] == 2
+PY3 = sys.version_info[0] == 3
+
+if PY2:
+    # 避免编码问题导致报错
+    try:
+        reload(sys)
+        sys.setdefaultencoding('utf8')
+    except:pass
+else:
+    basestring = unicode = str
+    long = int
 
 # 导入运行环境
 dirname = os.path.dirname(os.path.abspath(__file__))

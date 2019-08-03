@@ -13,7 +13,7 @@ import logging
 import datetime
 import unittest
 
-import __init__
+from __init__ import *
 from libs_my import cache
 
 # 测试用的类
@@ -34,6 +34,7 @@ class CacheTest(unittest.TestCase):
         self.cache_time = 0
         # 先清空之前的缓存,避免多次测试互相干扰
         cache.clear()
+        cache.init(clear_expire=1)
         assert cache.keys('.*') == []
 
     def test_base(self):
@@ -116,7 +117,7 @@ class CacheTest(unittest.TestCase):
     def test_keys(self):
         logging.warn(u'测试 keys 函数及返回长度检查')
         cache.put('a1', 1)
-        cache.put('b1', 1555L)
+        cache.put('b1', long(1555))
         cache.put('c1', 1)
         cache.put('d1', 1, 0.01)
         time.sleep(0.02) # 让上面的过期
@@ -129,13 +130,13 @@ class CacheTest(unittest.TestCase):
         assert len(cache.keys('.')) == 6
         assert cache.pop('a1', 'a2') == [1,1] # 取多个值,并删除
         assert cache.pop('a1') == None
-        assert set(cache.pop('a1', 'b1', 'b2')) == set([1555L, 1.0245]) # 取多个值,并删除
+        assert set(cache.pop('a1', 'b1', 'b2')) == set([long(1555), 1.0245]) # 取多个值,并删除
         assert cache.pop('a1', 'b1', 'b2') == []
 
     def test_set_json(self):
         logging.warn(u'测试 get put 函数存储非字符串情况')
         key = '""""哈哈'
-        value = {u"aa":u"哈哈", "bb":"嘿嘿", 0:[1,2,3],2:{'cc':[2.01,547L]}, '嘿嘿':set(u'哆来咪')} # 嵌套json
+        value = {u"aa":u"哈哈", "bb":"嘿嘿", 0:[1,2,3],2:{'cc':[2.01, long(547)]}, '嘿嘿':set(u'哆来咪')} # 嵌套json
         cache.put(key, value)
         assert cache.get(key) == value
         assert cache.pop(key) == value
@@ -351,7 +352,7 @@ class CacheTest(unittest.TestCase):
         assert self.cache_time == 1  # 没有缓存
         assert arg1 == test5(copy.deepcopy(arg1))
         assert self.cache_time == 1  # 使用了缓存
-        arg2 = 44444444444444444444444444466666666L
+        arg2 = long(44444444444444444444444444466666666)
         assert arg2 == test5(arg2)
         assert self.cache_time == 2  # 没有缓存
         assert arg2 == test5(arg2)

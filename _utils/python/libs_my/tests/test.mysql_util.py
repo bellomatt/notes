@@ -11,7 +11,7 @@ import unittest
 import threading
 import time, datetime
 
-import __init__
+from __init__ import *
 from libs_my import mysql_util
 
 

@@ -10,7 +10,7 @@ import os
 import logging
 import unittest
 
-import __init__
+from __init__ import *
 from libs_my import ftp_util
 
 class TestFtpUtil(unittest.TestCase):

@@ -12,12 +12,13 @@ fn 函数,目前针对被装饰器(Decorator)装饰过的函数,建议设置 nam
 """
 
 import re
+import sys
 import copy
 import time
 import types
 import base64
 import pickle
-import thread
+import threading
 import logging
 import datetime
 import functools
@@ -27,6 +28,12 @@ from hashlib import md5
 # 设置外部允许访问的函数
 __all__=('init','fn','clear', 'get', 'put', 'expire', 'exists', 'pop', 'keys')
 logger = logging.getLogger('libs_my.cache')
+
+PY2 = sys.version_info[0] == 2
+PY3 = sys.version_info[0] == 3
+if PY3:
+    basestring = unicode = str
+    long = int
 
 
 # 缓存用的字典
@@ -44,6 +51,7 @@ CONFIG = {
 def init(**kwargs):
     """
     修改缓存设置
+    :param {bool} thread: 是否启动自动清缓存的线程，默认不启动
     :param {int|long|float} fn_timeout: fn装饰器的缓存时间(单位:秒,默认30分钟)
     :param {int} clear_expire: 自动删除过期缓存的时间间隔(单位:秒。 设为0则不会自动删除,这容易导致内存占用过大以及内存溢出)
     :param {bool} cron_clear: 是否开启每天定时清空缓存,设为 True 则会每天定时清空所有缓存(默认),否则不清空(这容易导致内存占用过大以及内存溢出)
@@ -52,6 +60,12 @@ def init(**kwargs):
     :param {Function|list<Function>} after_clear: 清空缓存后调用的函数(需要空参,可直接调用)
     """
     global CONFIG
+    # 启动线程,自动删除过期的缓存内容
+    if (kwargs.get('thread') and not CONFIG.get('thread')) and \
+        (CONFIG.get('clear_expire') or CONFIG.get('cron_clear')):
+        __set_clear_ts()
+        th = threading.Thread(target=_clear_expire, args=(True,))
+        th.start()
     CONFIG.update(kwargs)
     __set_clear_ts()
 
@@ -303,10 +317,6 @@ def _clear_expire(loop=False):
                 time.sleep(expire_time or 300)
             else:
                 break
-        except Exception, e:
+        except Exception as e:
             logger.error(u"[red]自动删除过期的缓存出错: %s[/red]", e, exc_info=True, extra={'color':True, 'Exception':e})
 
-# 启动线程,自动删除过期的缓存内容
-if CONFIG.get('clear_expire') or CONFIG.get('cron_clear'):
-    __set_clear_ts()
-    thread.start_new_thread(_clear_expire, (True,))

@@ -14,7 +14,7 @@
 import os
 import glob
 import unittest
-import __init__
+from __init__ import *
 
 if __name__ == '__main__':
 

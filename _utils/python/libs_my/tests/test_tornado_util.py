@@ -10,7 +10,7 @@ import json
 import logging
 import unittest
 
-import __init__
+from __init__ import *
 from tornado.web import Application
 from tornado.testing import AsyncHTTPTestCase
 

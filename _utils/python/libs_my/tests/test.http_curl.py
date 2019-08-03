@@ -19,7 +19,7 @@ import time
 import unittest
 import threading
 
-import __init__
+from __init__ import *
 from libs_my import http_curl as http_util
 from libs_my import str_util, tornado_util
 

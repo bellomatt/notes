@@ -189,6 +189,7 @@ def to_json(value, **kwargs):
                 # 兼容 json 格式的 true 和 false
                 true = True
                 false = False
+                null = None
 
                 value = eval(value)
             except Exception as e:

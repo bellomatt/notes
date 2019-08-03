@@ -10,7 +10,7 @@ Updated on 2019/7/11
 import logging
 import unittest
 
-import __init__
+from __init__ import *
 from libs_my.enum_util import Const, get_enum_value
 
 class Platform(Const):
