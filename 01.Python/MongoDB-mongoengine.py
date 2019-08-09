@@ -67,6 +67,7 @@ mongoengine 提供对 MongoDB 的 ORM 操作
 
         # 额外设置，不是必须的
         meta = {
+            'db_alias': 'importer',  # db_alias用于指定model绑定的mongo连接，和connect函数中的alias对应
             'collection': 'students', # 设置集合名称
             'ordering': ['-age'], # 设置默认排序方式
             'indexes': [ # 设置索引
