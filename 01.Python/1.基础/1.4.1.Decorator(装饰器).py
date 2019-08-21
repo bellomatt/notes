@@ -8,9 +8,9 @@ Decorator(装饰器)
     python另外一个很有意思的属性：可以在函数中定义函数。
     其实总体说起来，装饰器其实也就是一个函数，一个用来包装函数的函数，返回一个修改之后的函数对象，将其重新赋值原来的标识符，并永久丧失对原始函数对象的访问。
 
-	实际上，装饰器并不是必须的。意思就是说，你完全可以不使用装饰器，使用它是为了使我们的代码
-		更加优雅，代码结构更加清晰
-		将实现特定的功能代码封装成装饰器，提高代码复用率，增强代码可读性
+    实际上，装饰器并不是必须的。意思就是说，你完全可以不使用装饰器，使用它是为了使我们的代码
+        更加优雅，代码结构更加清晰
+        将实现特定的功能代码封装成装饰器，提高代码复用率，增强代码可读性
 
     官方的说明:
     http://www.python.org/dev/peps/pep-0318/
@@ -90,21 +90,21 @@ Decorator(装饰器)
                     print('hello.')
                 else:
                     return
-    
+
                 # 真正执行函数的地方
                 func(*args, **kwargs)
             return deco
         return wrapper
-    
-    
+
+
     @say_hello("china")
     def xiaoming():
         print('小明，中国人')
-    
+
     @say_hello("america")
     def jack():
         print('jack，美国人')
-    
+
     # 看看执行效果
     xiaoming()  # 打印: 你好! \n 小明，中国人
     print("------------")
@@ -158,23 +158,23 @@ Decorator(装饰器)
 
 范例(高阶:不带参数的类装饰器)
     """
-	以上都是基于函数实现的装饰器，在阅读别人代码时，还可以时常发现还有基于类实现的装饰器。
+    以上都是基于函数实现的装饰器，在阅读别人代码时，还可以时常发现还有基于类实现的装饰器。
     基于类装饰器的实现，必须实现 __call__ 和 __init__两个内置函数。
         __init__ ：接收被装饰函数
         __call__ ：实现装饰逻辑。
-	"""
+    """
     class logger(object):
         def __init__(self, func):
             self.func = func
-    
+
         def __call__(self, *args, **kwargs):
             print("[INFO]: the function {func}() is running...".format(func=self.func.__name__))
             return self.func(*args, **kwargs)
-    
+
     @logger
     def say(something):
         print("say {}!".format(something))
-    
+
     say("hello")
     # 打印: [INFO]: the function say() is running...
     # 打印: say hello!
@@ -182,41 +182,41 @@ Decorator(装饰器)
 
 范例(高阶:带参数的类装饰)
     """
-	上面不带参数的例子，你发现没有，只能打印INFO级别的日志，正常情况下，我们还需要打印DEBUG WARNING等级别的日志。这就需要给类装饰器传入参数，给这个函数指定级别了。
-	带参数和不带参数的类装饰器有很大的不同。
-		__init__ ：不再接收被装饰函数，而是接收传入参数。
-		__call__ ：接收被装饰函数，实现装饰逻辑
-	"""
+    上面不带参数的例子，你发现没有，只能打印INFO级别的日志，正常情况下，我们还需要打印DEBUG WARNING等级别的日志。这就需要给类装饰器传入参数，给这个函数指定级别了。
+    带参数和不带参数的类装饰器有很大的不同。
+        __init__ ：不再接收被装饰函数，而是接收传入参数。
+        __call__ ：接收被装饰函数，实现装饰逻辑
+    """
     class logger(object):
         def __init__(self, level='INFO'):
             self.level = level
-    
+
         def __call__(self, func):  # 接受函数
             def wrapper(*args, **kwargs):
                 print("[{level}]: the function {func}() is running...".format(level=self.level, func=func.__name__))
                 func(*args, **kwargs)
             return wrapper  # 返回函数
-    
+
     @logger(level='WARNING')
     def say(something):
         print("say {}!".format(something))
-    
+
     say("hello")
     # 打印: [WARNING]: the function say() is running...
     # 打印: say hello!
 
 
 范例(使用偏函数与类实现装饰器)
-	"""
-	绝大多数装饰器都是基于函数和闭包实现的，但这并非制造装饰器的唯一方式。
-	事实上，Python 对某个对象是否能通过装饰器（ @decorator）形式使用只有一个要求：decorator 必须是一个“可被调用（callable）的对象。
-	对于这个 callable 对象，我们最熟悉的就是函数了。
-	除函数之外，类也可以是 callable 对象，只要实现了__call__ 函数（上面几个例子已经接触过了）。
-	还有容易被人忽略的偏函数其实也是 callable 对象。
-	接下来就来说说，如何使用 类和偏函数结合实现一个与众不同的装饰器。
+    """
+    绝大多数装饰器都是基于函数和闭包实现的，但这并非制造装饰器的唯一方式。
+    事实上，Python 对某个对象是否能通过装饰器（ @decorator）形式使用只有一个要求：decorator 必须是一个“可被调用（callable）的对象。
+    对于这个 callable 对象，我们最熟悉的就是函数了。
+    除函数之外，类也可以是 callable 对象，只要实现了__call__ 函数（上面几个例子已经接触过了）。
+    还有容易被人忽略的偏函数其实也是 callable 对象。
+    接下来就来说说，如何使用 类和偏函数结合实现一个与众不同的装饰器。
 
-	如下所示，DelayFunc 是一个实现了 __call__ 的类，delay 返回一个偏函数，在这里 delay 就可以做为一个装饰器。
-	"""
+    如下所示，DelayFunc 是一个实现了 __call__ 的类，delay 返回一个偏函数，在这里 delay 就可以做为一个装饰器。
+    """
     import time
     import functools
 
@@ -256,7 +256,7 @@ Decorator(装饰器)
     @delay(duration=2)  # 也可以改用 delay2 装饰器试试看，效果是否一样
     def add(a, b):
         return a+b
-    
+
     # 来看一下执行过程
     if __name__ == '__main__':
         print(add)  # 打印: <__main__.DelayFunc object at 0x107bd0be0>
@@ -274,10 +274,10 @@ Decorator(装饰器)
 
 
 范例(装饰类的装饰器)
-	"""
-	用 Python 写单例模式的时候，常用的有三种写法。其中一种，是用装饰器来实现的。
-	以下便是我自己写的装饰器版的单例写法。
-	"""
+    """
+    用 Python 写单例模式的时候，常用的有三种写法。其中一种，是用装饰器来实现的。
+    以下便是我自己写的装饰器版的单例写法。
+    """
 
     instances = {}
 
@@ -308,7 +308,7 @@ Decorator(装饰器)
         u2 = User('student2')  # 仅打印: 步骤 1
         print(u2.age)  # 打印: 20
 
-	# 只要熟悉装饰器的实现过程，就不难实现对类的装饰。在上面这个例子中，装饰器就只是实现对类实例的生成的控制而已。
+    # 只要熟悉装饰器的实现过程，就不难实现对类的装饰。在上面这个例子中，装饰器就只是实现对类实例的生成的控制而已。
 
 
 内置的装饰器
@@ -476,11 +476,11 @@ functools 模块提供了两个装饰器。
     foo()
     print(foo.__name__) # 打印: foo,  没有 @functools.wraps 装饰过的话,打印 wrapper
 
-	"""
-	使用 functools.wraps 装饰器，它的作用就是将 被修饰的函数(foo) 的一些属性值赋值给 修饰器函数(wrapper) ，最终让属性的显示更符合我们的直觉。
-	其实查看 functools.wraps 装饰器的源码可以看到就是调用了一个函数update_wrapper，
-	知道原理后，我们改写上面的代码，在不使用 wraps的情况下，也可以让 foo.__name__ 打印出 foo
-	"""
+    """
+    使用 functools.wraps 装饰器，它的作用就是将 被修饰的函数(foo) 的一些属性值赋值给 修饰器函数(wrapper) ，最终让属性的显示更符合我们的直觉。
+    其实查看 functools.wraps 装饰器的源码可以看到就是调用了一个函数update_wrapper，
+    知道原理后，我们改写上面的代码，在不使用 wraps的情况下，也可以让 foo.__name__ 打印出 foo
+    """
     import time
     WRAPPER_ASSIGNMENTS = ('__module__', '__name__', '__qualname__', '__doc__', '__annotations__')
 
