@@ -320,6 +320,96 @@ Python 管理属性的方法一般有三种:
     这里隐含着一个事实，前面没有说明，这里必须说明一下: 如果“特性”中的三个成员方法有任何一个没有被定义，那么，就不能通过“特性”来进行相应的操作；如果进行了这样的操作，那么将会引发 AttributeError 异常(Python找不到相应的方法来调用)。
     比如: 如果没有定义fset成员方法，那么就不能通过“特性”来对被该“特性”所管理的属性进行赋值操作；否则，将引发 AttributeError 异常。
 
+  2.5 实现原理:
+  	"""
+	property 底层是基于描述符协议，虽然没法直接看 property 的源码。不过，从伪源码的魔法函数结构组成，可以大体知道其实现逻辑。
+	这里我自己通过模仿其函数结构，结合「描述符协议」来自己实现类 property 特性。
+	"""
+    class TestProperty(object):
+
+        def __init__(self, fget=None, fset=None, fdel=None, doc=None):
+            self.fget = fget
+            self.fset = fset
+            self.fdel = fdel
+            self.__doc__ = doc
+
+        def __get__(self, obj, objtype=None):
+            print("in __get__")
+            if obj is None:
+                return self
+            if self.fget is None:
+                raise AttributeError
+            return self.fget(obj)
+
+        def __set__(self, obj, value):
+            print("in __set__")
+            if self.fset is None:
+                raise AttributeError
+            self.fset(obj, value)
+
+        def __delete__(self, obj):
+            print("in __delete__")
+            if self.fdel is None:
+                raise AttributeError
+            self.fdel(obj)
+
+
+        def getter(self, fget):
+            print("in getter")
+            return type(self)(fget, self.fset, self.fdel, self.__doc__)
+
+        def setter(self, fset):
+            print("in setter")
+            return type(self)(self.fget, fset, self.fdel, self.__doc__)
+
+        def deleter(self, fdel):
+            print("in deleter")
+            return type(self)(self.fget, self.fset, fdel, self.__doc__)
+
+    class Student(object):
+        def __init__(self, name):
+            self.name = name
+            self.name = None
+
+        # 其实只有这里改变
+        @TestProperty  # 相当于使用 @property
+        def age(self):
+            return self._age
+
+		"""
+		使用TestProperty装饰后， age 不再是一个函数，而是TestProperty类的一个实例。
+		所以第二个 age 函数可以使用 age.setter 来装饰，本质是调用 TestProperty.setter 来产生一个新的 TestProperty 实例赋值给第二个 age 函数。
+
+		第一个 age 和第二个 age 是两个不同 TestProperty 实例，但他们都属于同一个描述符类（TestProperty）。
+		当对 age 对于赋值时，就会进入 TestProperty.__set__，当对 age 进行取值里，就会进入 TestProperty.__get__。
+		仔细一看，其实最终访问的还是 Student 实例的 _age 属性。
+		"""
+        @age.setter
+        def age(self, value):
+            if not isinstance(value, int):
+                raise ValueError('输入不合法：年龄必须为数值!')
+            if not 0 < value < 100:
+                raise ValueError('输入不合法：年龄范围必须0-100')
+            self._age=value
+
+        @age.deleter
+        def age(self):
+            del self._age
+            print('删除属性age')
+
+    # 看看运行效果
+    if __name__ == '__main__':
+        xiaoming = Student("小明")
+
+        # 设置属性
+        xiaoming.age = 25
+
+        # 查询属性
+        print(xiaoming.age)
+
+        # 删除属性
+        del xiaoming.age
+
 
 3. 描述符(descriptor)
     特性只是创建一个特定类型的描述符的一种简化方式，即: 可以把特性看成是简化了的、受限的描述符；
