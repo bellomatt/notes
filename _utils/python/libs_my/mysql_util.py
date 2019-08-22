@@ -16,6 +16,7 @@ import sys
 import time
 import logging
 import threading
+import functools
 
 try:
     import pymysql as MySQLdb
@@ -173,6 +174,7 @@ def close_conn(conn=None, cursor=None):
 
 def _init_execute(func):
     """处理获取数据库连接、超时记日志问题"""
+    @functools.wraps(func)
     def wrapper(*args, **kwargs):
         start_time = time.time()
         global CONFIG
@@ -221,7 +223,6 @@ def _init_execute(func):
         else:
             logging.info(u"SQL, 耗时 %.4f 秒, %s" , use_time, log_msg)
         return result
-    wrapper.__doc__ = func.__doc__
     return wrapper
 
 

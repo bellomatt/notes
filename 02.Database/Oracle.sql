@@ -208,3 +208,7 @@
 	select *from user_tab_comments where table_name='TABLE_COUNT'; -- 表注释
 	select *from user_col_comments where table_name='TABLE_COUNT'; -- 字段注释
 
+日期转换
+	to_date ( '2007-12-20 18:31:34' , 'YYYY-MM-DD HH24:MI:SS' )
+	to_date ( '2007-11-15' , 'YYYY-MM-DD' )
+

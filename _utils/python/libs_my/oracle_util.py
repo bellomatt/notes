@@ -15,6 +15,8 @@ import os
 import sys
 import time
 import logging
+import threading
+import functools
 
 os.environ['NLS_LANG'] = os.environ.get('NLS_LANG') or 'SIMPLIFIED CHINESE_CHINA.UTF8'  # 防止中文乱码问题
 import cx_Oracle as oracle
@@ -126,6 +128,7 @@ def close_conn(conn=None, cursor=None):
 
 def _init_execute(func):
     """处理获取数据库连接、超时记日志问题"""
+    @functools.wraps(func)
     def wrapper(*args, **kwargs):
         start_time = time.time()
 
@@ -156,8 +159,6 @@ def _init_execute(func):
         # 为了更方便阅读,执行SQL的结果如果很短,则将它提前写
         logging.info(u"SQL, 耗时 %.4f 秒, 执行:%s, 返回:%s", use_time, log_param, result)
         return result
-
-    wrapper.__doc__ = func.__doc__
     return wrapper
 
 
@@ -361,3 +362,149 @@ def execute_list(sql_list, must_rows=False, transaction=True, **kwargs):
     finally:
         close_conn(conn, cursor)
 
+
+class Atom(object):
+    """
+    使用事务,原子地操作多个语句时,可使用本类
+    注:同一个实例无法完美支持多线程操作,故去掉多线程
+    """
+    # 连接池对象
+    __pool = {}
+    __lock = threading.Lock()
+
+    def __init__(self, **kwargs):
+        """
+        本类的构造,会打开连接、设置事务等。 需要手动提交
+        :param 其他参数,连接 Oracle 数据库的连接参数,跟 oracle.connect 的一致。 有传则用传来的连接, 没有则用本文件预设或默认的。
+            如: host, port, user, passwd, db, charset, cursorclas ...
+        """
+        conn, cursor, db_key = Atom.__get_conn(**kwargs)
+        if not conn:
+            logging.error('[red]mysql connection error[/red], new Atom() fail', extra={'color': True})
+            raise RuntimeError(u"mysql 数据库连接不上")
+        # 开启事务
+        conn.begin()
+        self.conn = conn
+        self.cursor = cursor
+        self.db_key = db_key
+        self.other_params = {'conn': conn, 'cursor': cursor, 'transaction': False, 'threads': False}  # 额外参数
+
+    @staticmethod
+    def __get_conn(repeat_time=3, **kwargs):
+        """
+        静态方法，从连接池中取出连接
+        :return oracle.connection
+        """
+        conn = None
+        cursor = None
+        db_key = repr(kwargs)
+        pool = Atom.__pool.get(db_key)
+        if pool is None:
+            # 锁定, 避免并发访问时改变连接池的引用,保证同一个 db_key 只有一个连接池
+            Atom.__lock.acquire()
+            pool = Atom.__pool.get(db_key)
+            if pool is None:
+                pool = set()
+                Atom.__pool[db_key] = pool
+            # 释放锁
+            Atom.__lock.release()
+        # 允许出错时重复提交多次,只要设置了 repeat_time 的次数
+        while repeat_time > 0 or len(pool) > 0:
+            try:
+                conn = pool.pop()
+                # 尝试连接数据库
+                conn.ping()
+                cursor = conn.cursor()
+                return conn, cursor, db_key
+            # set 内容为空时, pop 会抛异常
+            except KeyError:
+                # 数据库连接配置
+                global CONFIG
+                db_config = CONFIG.copy()
+                db_config.pop('mincached', None)
+                db_config.pop('maxcached', None)
+                db_config.pop('maxshared', None)
+                db_config.pop('maxconnections', None)
+                db_config.update(kwargs)
+                try:
+                    conn = oracle.connect('{user}/{password}@{host}:{port}/{sid}'.format(**db_config))
+                    cursor = conn.cursor()
+                    return conn, cursor, db_key
+                except Exception as e:
+                    logging.error(u'[red]mysql connection error[/red]:%s', e, exc_info=True, extra={'color': True})
+                    raise
+            # 连接超时或已断开
+            except Exception as e:
+                repeat_time -= 1
+                logging.error(u'[red]mysql connection error[/red]:%s', e, exc_info=True, extra={'color': True})
+                try:
+                    if cursor:
+                        cursor.close()
+                    if conn:
+                        conn.close()
+                except:pass
+        return conn, cursor, db_key
+
+    @staticmethod
+    def __release(db_key, conn=None, cursor=None):
+        """
+        使用完数据库连接,放回线程池
+        """
+        if conn:
+            Atom.__pool[db_key].add(conn)
+        try:
+            if cursor:
+                cursor.close()
+        except:pass
+
+    def commit(self, dispose=True):
+        """
+        提交
+        :param {bool} dispose: 是否需要消耗此对象(默认销毁)
+        """
+        self.conn.commit()
+        if dispose:
+            self.dispose()
+        logging.info(u'事务提交完成,销毁对象:%s', dispose)
+
+    def rollback(self, dispose=True):
+        """
+        回滚
+        :param {bool} dispose: 是否需要消耗此对象(默认销毁)
+        """
+        self.conn.rollback()
+        if dispose:
+            self.dispose()
+        logging.info(u'事务回滚完成,销毁对象:%s', dispose)
+
+    def dispose(self):
+        """
+        释放连接资源
+        """
+        Atom.__release(self.db_key, conn=self.conn, cursor=self.cursor)
+        self.conn = None
+        self.cursor = None
+
+    def __del__(self):
+        """Delete the db connection."""
+        try:
+            self.dispose()
+        except:pass
+
+    # 下面动态加入本文件的所有函数作为类里面的函数
+    # 即:  'ping', 'select', 'get', 'execute', 'execute_list', 'executemany', 'query_data', 'add_data', 'add_datas', 'del_data', 'update_data', 'format_sql', 'add_sql'
+    for __function in __all__:
+        # 下面函数无法实现,就不再加了
+        if __function in ('init', 'set_conn', 'get_conn', 'Atom'):
+            continue
+        # 获取 docstring
+        __doc = eval(u"%s.__doc__" % __function) or ''
+        # 动态加入函数
+        exec(u"""def %(function)s (self, *args, **kwargs):
+        u'''%(doc)s'''; # 生成 docstring
+        kwargs.update(self.other_params); # 设置额外参数
+        res = %(function)s(*args, **kwargs); # 调用本文件的对应操作函数
+        return res;""" % {'function': __function, 'doc': __doc})
+    # 删除上面产生的临时变量,避免遗留在这类里面
+    del __doc
+    del __function

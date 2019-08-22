@@ -199,6 +199,96 @@ class OracleToolsTest(unittest.TestCase):
             self.assertTrue(bool(getattr(self.db, function).__doc__), '%s函数没有文档' % function)
 
 
+class Test_Atom1(OracleToolsTest):
+    db = None
+
+    def setUp(self):
+        u"""初始化"""
+        self.class_name = self.__class__.__name__
+        logging.info(u'%s 类的 %s 函数测试开始...', self.class_name, self._testMethodName)
+        self.db = oracle_util.Atom()
+        assert self.db.ping()
+
+    def tearDown(self):
+        u"""销毁"""
+        logging.info(u'%s 类清空数据表,避免影响别的测试用例。。。', self.class_name)
+        assert self.db.ping()
+        self.db.execute("TRUNCATE TABLE t_test_table")
+        result = self.db.select('select * from t_test_table')
+        assert len(result) == 0
+
+        self.db.dispose()
+        self.db = None
+        logging.info(u'%s 类的 %s 函数测试完毕。。。\r\n', self.class_name, self._testMethodName)
+
+    def test_doc(self):
+        # 每个变量都有文档
+        logging.warning('Atom 文档 测试')
+        functions = dir(oracle_util.Atom)
+        # logging.warning(functions)
+        for function in functions:
+            if function.startswith('_'): continue
+            # logging.warning("%s.__doc__: %s" % (function, getattr(oracle_util.Atom, function).__doc__))
+            assert bool(getattr(oracle_util.Atom, function).__doc__)
+
+    def test_threads(self):
+        # 异步 测试
+        logging.warning('Atom 异步测试, 此功能已去掉, 故无法测试')
+
+    def test_rollback(self):
+        logging.warning('Atom rollback 测试')
+        # 插入一条
+        rows = self.db.execute("insert into t_test_table(user_id, playlist_id, status) values(1101, 1, 'inactive')")
+        assert rows == 1
+        # 类内查询
+        result = self.db.select('select * from t_test_table')
+        assert len(result) == 1
+        # 类外查询
+        result = oracle_util.select('select * from t_test_table')
+        assert len(result) == 0
+        # 回滚
+        self.db.rollback(dispose=False)
+        # 类外查询
+        result = oracle_util.select('select * from t_test_table')
+        assert len(result) == 0
+
+    def test_commit(self):
+        logging.warning('Atom commit 测试')
+        # 插入一条
+        rows = self.db.execute("insert into t_test_table(user_id, playlist_id, status) values(:1, :2, :3)", (1102, 1, 'inactive'))
+        assert rows == 1
+        # 类内查询
+        result = self.db.select('select * from t_test_table where playlist_id=:1', 1)
+        assert len(result) == 1
+        # 类外查询
+        result = oracle_util.select('select * from t_test_table where playlist_id=:playlist_id', {'playlist_id': 1})
+        assert len(result) == 0
+        # 提交
+        self.db.commit(dispose=False)
+        # 类外查询
+        result = oracle_util.select('select * from t_test_table')
+        assert len(result) == 1
+
+
+class Test_Atom2(unittest.TestCase):
+    # 原子操作类 Atom 的测试2:连接多个数据库
+    def test_Atom2(self):
+        fail = False
+        try:
+            mydb = oracle_util.Atom(**{
+                 'host': '127.1.1.3',
+                 'port': '1521',
+                 'user': 'root',
+                 'password': 'keepc@2014..',
+                 'sid': 'test',
+                 })
+            assert mydb.ping()
+        except:
+            fail = True
+            logging.warning('Atom连接不上,测试通过, 上面报错是必须的。。。')
+        assert fail
+
+
 if __name__ == "__main__":
     # 数据库配置
     DB_CONFIG = {
