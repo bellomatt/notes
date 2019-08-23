@@ -212,3 +212,79 @@
 	to_date ( '2007-12-20 18:31:34' , 'YYYY-MM-DD HH24:MI:SS' )
 	to_date ( '2007-11-15' , 'YYYY-MM-DD' )
 
+
+ORACLE 分页查询 SQL 语法
+
+	提升效率的关键，是尽可能减少最底层查询的数据量。
+	第一种写法将 ROWNUM 写到最底层查询条件中，效率最高。
+	有 ORDER BY 之后没法再将 ROWNUM 写到最底层查询条件里面，使用 HAVING 也不行，所以得多包一层，降低了查询效率。
+	注意： ROWNUM 从 1 开始递增。
+
+	1:无 ORDER BY 排序的写法。(效率最高)
+	  -- (经过测试，此方法成本最低，只嵌套一层，速度最快！即使查询的数据量再大，也几乎不受影响，速度依然！)
+		SELECT *
+		  FROM (SELECT ROWNUM AS rowno, t.* FROM emp t
+				WHERE hire_date BETWEEN TO_DATE ('20060501', 'yyyymmdd') AND TO_DATE ('20060731', 'yyyymmdd')
+				AND ROWNUM <= 20) table_alias
+		 WHERE table_alias.rowno >= 11;
+
+	2:有 ORDER BY 排序的写法。(效率最高)
+		-- (经过测试，此方法随着查询范围的扩大，速度也会越来越慢哦！)
+		SELECT *
+		  FROM (SELECT tt.*, ROWNUM AS rowno
+				  FROM (  SELECT t.* FROM emp t
+						  WHERE hire_date BETWEEN TO_DATE ('20060501', 'yyyymmdd') AND TO_DATE ('20060731', 'yyyymmdd')
+						  ORDER BY create_time DESC, emp_no) tt
+				 WHERE ROWNUM <= 20) table_alias
+		 WHERE table_alias.rowno >= 11;
+
+		-- (经过测试，此方法也可行，但速度未经测试！嵌套只有一层，估计不会慢)
+		SELECT *
+			FROM (SELECT ROWNUM AS rowno, t.* FROM HW_TALENT_RESUME_T t
+				 WHERE LAST_UPDATE_DATE >= TO_DATE ('2019-08-01 00:00:00', 'YYYY-MM-DD HH24:MI:SS')
+				 ORDER BY LAST_UPDATE_DATE) table_alias
+		 WHERE table_alias.rowno between 11 and 20;
+
+	=================================================================================
+	=======================垃圾但又似乎很常用的分页写法==========================
+	=================================================================================
+	3:无 ORDER BY 排序的写法。(建议使用方法1代替)
+		-- (此方法随着查询数据量的扩张，速度会越来越慢哦！)
+		SELECT *
+		  FROM (SELECT ROWNUM AS rowno, t.* FROM k_task t
+				 WHERE flight_date BETWEEN TO_DATE ('20060501', 'yyyymmdd') AND TO_DATE ('20060731', 'yyyymmdd')) table_alias
+		 WHERE table_alias.rowno <= 20 AND table_alias.rowno >= 11;
+		 -- WHERE TABLE_ALIAS.ROWNO  between 10 and 100;
+
+	4:有 ORDER BY 排序的写法.(建议使用方法2代替)
+		-- (此方法随着查询范围的扩大，速度会越来越慢哦！)
+		SELECT *
+		  FROM (SELECT tt.*, ROWNUM AS rowno
+				  FROM (  SELECT * FROM k_task t
+						   WHERE flight_date BETWEEN TO_DATE ('20060501', 'yyyymmdd') AND TO_DATE ('20060531', 'yyyymmdd')
+						ORDER BY fact_up_time, flight_no) tt) table_alias
+		 WHERE table_alias.rowno BETWEEN 11 AND 20;
+
+
+	5:另类语法。(有 ORDER BY 写法）
+		-- (语法风格与传统的SQL语法不同，不方便阅读与理解，为规范与统一标准，不推荐使用。)
+		WITH partdata AS
+			 ( SELECT ROWNUM AS rowno, tt.*
+				  FROM (  SELECT * FROM k_task t
+						   WHERE flight_date BETWEEN TO_DATE ('20060501', 'yyyymmdd') AND TO_DATE ('20060531', 'yyyymmdd')
+						ORDER BY fact_up_time, flight_no) tt
+				 WHERE ROWNUM <= 20)
+		SELECT *
+		  FROM partdata
+		 WHERE rowno >= 11;
+
+	6:另类语法。(无 ORDER BY 写法）
+		WITH partdata AS
+			 ( SELECT ROWNUM AS rowno, t.*
+				  FROM k_task t
+				 WHERE flight_date BETWEEN TO_DATE ('20060501', 'yyyymmdd') AND TO_DATE ('20060531', 'yyyymmdd')
+				   AND ROWNUM <= 20)
+		SELECT *
+		  FROM partdata
+		 WHERE rowno >= 11;
+ 
