@@ -7,6 +7,32 @@
 
     参考文档：http://progit.org/book/zh/
 
+    真实常用操作:
+        0. git clone ssh://git@git.dianmi365.com:18122/chenyuan/dianmi.python.core.git
+        1. git checkout develop  # 切换到此分支
+        #2. git pull origin master # 把主分支的代码 pull 下来，且合并到此分支
+        2. git pull origin develop # 把 develop 分支的代码 pull 下来
+
+        3. 修改代码...
+           git status  # 文件被修改，需要查看情况
+           git diff <filename> # 文件修改情况
+
+           git add . # 如果有新增文件，可以按文件名添加，也可以用 . 一次性添加所有
+        4. git commit -am "查看页面不强制要求登录"  # 提交代码
+        5. git push origin develop # 推送代码到服务器
+        6. 提交后需要到网站上进行 pull reuqest
+
+        7. git checkout master  # 切换到此分支
+        8. git pull origin master  # pull 代码下来(自动合并到本地),这是更新 master 分支的代码
+           git fetch origin # fetch 拉代码下来，但不自动合并。 git pull = git fetch + git merge
+        9. git rebase origin/master # 与主干同步
+        10. git merge develop  # 将 develop 的工作分支合并到当前分支
+            有冲突则手动解决,且需要 commit
+        10. git rebase --continue # rebase 后解决冲突
+        11. git push origin master # 推送代码到服务器
+            git push --force origin myfeature # rebase 后，分支不能正常推时，需要强推上去
+        12. git log  # 查看log
+
     常用命令：
         $ git init   # 初始化 git 仓库(需要先进入到仓库目录)
         $ git --bare init # 创建一个纯粹(bare)的代码仓库(服务器用)
@@ -17,27 +43,44 @@
         $ git clone git@192.168.1.202:/var/git.server/project1  # 克隆一份项目下来
         $ git pull origin master  # pull 代码下来
         $ git push origin master  # push 代码上去
+        $ git push --force origin master # 强行把本地版本推到服务器上
         $ git ls-files -v | grep settings.py  # 查看某文件是否被忽略(正常的显示“H”开头, 被忽略的“S”开头)
         $ git update-index --skip-worktree web/mvc/cloud/settings.py # 忽略某文件的修改, 不提交
         $ git update-index --no-skip-worktree web/mvc/cloud/settings.py # 恢复某文件的提交, 以上面的相对
+
         $ git log   # 查看提交日志
         $ git log -3 # 查看最后 3 条提交信息
         $ git log -3 --stat  # 显示简单的提交统计信息
         $ git log -1 -p  # 显示修改的详细信息
+        $ git log 标签值  # 用标签显示提交状态
+
         $ git branch <name>  # 创建新的分支
         $ git branch <name> HEAD^  # 创建不以当前版本为起点的分支
-        $ git branch   # 查看当前所有分支
+        $ git branch   # 查看本地所有分支
+        $ git branch -r  # 查看所有远程分支
+        $ git branch -a  # 查看远程和本地所有分支
+        $ git branch -d <name>  # 删除工作分支
+        $ git branch -D <name> # 强制删除分支(本地,未合并的分支)
+        $ git push origin :<name>  # 删除远程分支
+
         $ git checkout <name>   # 切换到新的工作分支
         $ git checkout -b <name>  # 一次完成创建和切换分支的工作
-        $ git branch -d <name>  # 删除工作分支
+        $ git checkout -b <本地分支名称> origin/<远程分支名称>  # 创建并切换到远程分支
+        $ git fetch origin <远程分支名称>:<本地分支名称>  # 在本地新建分支x，但是不会自动切换到该本地分支x，需要手动checkout
+        $ git checkout HEAD^ -- <filename>  # 恢复某文件
+
+        $ git stash # 临时挂起，不提交而拉取新代码
+        $ git stash apply # 恢复未提交前的编辑状态
+
         $ git merge <name>  # 将 新分支名 的工作分支合并到当前分支
+        $ git cherry-pick abce00c8 # 只合并某个提交(其它提交的内容不合并,需要先checkout到被合并的分支上，后面一个参数是提交编码的前8位)
+
         $ git reset HEAD^ # 恢复到上次某个提交状态, 可以是 HEAD^、HEAD~4、commit-id 的头几个字母, 还可以是 tag
+        $ git reset --hard 17ccc1b2(版本id) # 回退到某版本
         $ git tag 标签值  # 创建简单标签
         $ git tag  # 显示所有标签
-        $ git log 标签值  # 用标签显示提交状态
         $ git show --stat 标签值  # 用标签显示提交基本信息
         $ git rm INSTALL  # 删除文件,git里的删除
-        $ git checkout HEAD^ -- <filename>  # 恢复某文件
         $ git show <filename>   # 查看提交版本的具体信息
         $ git show HEAD^ <filename>   # 查看历史提交版本的具体信息
         $ git diff HEAD <filename>  # 查看工作目录和暂存区的差异
@@ -49,34 +92,6 @@
         $ git gc  # 清理无用数据
 
         在 Git 中 "HEAD" 表示仓库中最后一个提交版本, "HEAD^" 是倒数第二个版本, "HEAD~2" 、"HEAD~4"则是更老的版本。
-
-
-    真实常用操作:
-        # 复制项目下来
-        $ git clone ssh://fengwanli@dev-se.blueapple.mobi:/home/git/new_vuclip
-
-        # 进入项目目录(windows环境)
-        $ cd d:/workspace/new_vuclip_deploy
-
-        # switch 到分支上
-        $ git checkout new_vuclip_branch_12_21_2010
-
-        # 查看状态
-        $ git status
-        显示: # On branch new_vuclip_branch_12_21_2010 nothing to commit, working directory clean
-
-        # 下载最新代码
-        $ git pull
-
-        # commit (只是提交到本机)
-        $ git add .   # 添加所有新增文件
-        $ git commit -am "init"   # 提交, 必须提供一个注释, 否则无法执行。引号里面的内容是提交时的注释内容
-
-        # 推送代码到服务器 (commit 后必须执行这步，否则服务器不知道改变)
-        $ git push
-
-        # 查看提交日志
-        $ git log
 
 
 二、基础命令
