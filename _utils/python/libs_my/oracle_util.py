@@ -3,7 +3,7 @@
 """
 公用函数(oracle数据库的操作)
 Created on 2019/7/31
-Updated on 2019/8/2
+Updated on 2019/8/30
 @author: Holemar
 
 依赖第三方库:
@@ -21,15 +21,14 @@ import functools
 os.environ['NLS_LANG'] = os.environ.get('NLS_LANG') or 'SIMPLIFIED CHINESE_CHINA.UTF8'  # 防止中文乱码问题
 import cx_Oracle as oracle
 
-
 PY2 = sys.version_info[0] == 2
 PY3 = sys.version_info[0] == 3
 if PY3:
     basestring = unicode = str
     long = int
 
-
-__all__ = ('set_conn', 'get_conn', 'ping', 'select', 'get', 'execute', 'execute_list', 'executemany')
+__all__ = ('set_conn', 'get_conn', 'ping', 'select', 'get', 'execute', 'execute_list', 'executemany', 'Atom',
+           'query_data', 'add_data', 'add_datas', 'del_data', 'update_data', 'format_sql', 'get_table', 'add_sql')
 
 # 数据库连接
 db_conn = None
@@ -102,11 +101,15 @@ def get_conn(repeat_time=3):
             repeat_time -= 1
             logging.error('oracle connection error:%s', e, exc_info=True)
             try:
-                if cursor:cursor.close()
-            except:pass
+                if cursor:
+                    cursor.close()
+            except:
+                pass
             try:
-                if conn:conn.close()
-            except:pass
+                if conn:
+                    conn.close()
+            except:
+                pass
     return conn, cursor
 
 
@@ -119,11 +122,13 @@ def close_conn(conn=None, cursor=None):
     try:
         # if cursor:cursor.close()
         pass
-    except:pass
+    except:
+        pass
     try:
         # if conn:conn.close()
         pass
-    except:pass
+    except:
+        pass
 
 
 def _init_execute(func):
@@ -199,12 +204,12 @@ def select(sql, param=None, fetchone=False, **kwargs):
         # count = cursor.rowcount  # 只有执行了 fetchall 之后才知道有多少行，没法预先判断
         # 查不到时
         # if count <= 0:
-        #     return None if fetchone is True else tuple()
+        #     return None if fetchone is True or fetchone == 1 else tuple()
         # 只返回1行(True 与 1 一样)
-        if fetchone is True:
+        if fetchone is True or fetchone == 1:
             return cursor.fetchone() or None
         # 返回所有
-        elif fetchone is False:
+        elif fetchone is False or fetchone == 0:
             return cursor.fetchall()
         # 返回指定行数
         elif isinstance(fetchone, (int, long)):
@@ -363,6 +368,175 @@ def execute_list(sql_list, must_rows=False, transaction=True, **kwargs):
         close_conn(conn, cursor)
 
 
+def query_data(table, condition=None, orderby=None, **kwargs):
+    """
+    查询一个表
+    :param {string} table: 要查询的表的名称(注意:表名的前缀"t_"也要求写,如果有的话)
+    :param {dict} condition: 要查询的条件
+    :param {string} orderby: 要排序的条件
+    :param {bool|int} fetchone: 为 True则只返回第一条结果, 为False则返回所有的查询结果, 为 int 类型则返回指定的条数
+    :param conn: 数据库连接(有传则使用传来的,没有则自动获取,便于使用事务)
+    :param cursor: 数据库连接的 Cursor Object(有传则使用传来的,没有则自动获取,便于使用事务)
+    :return {tuple<dict> | dict}:
+        当 参数 fetchone 为 True 时, 返回SQL查询的结果(dict类型),查不到返回 None
+        当 参数 fetchone 为 False 时, 返回SQL查询结果集,查不到时返回空的 tuple
+    @example
+        results = query_data('service_conf', {"bid":333, "category":"cc"})
+        实际执行: SELECT * FROM service_conf WHERE bid=333 AND category ='cc'
+    """
+    sql = u'SELECT * FROM "%s" ' % get_table(table)
+    if condition:
+        condition_sql = format_sql(' AND ', condition)
+        sql += u" WHERE %s" % (condition_sql)
+    if orderby:
+        sql += u" ORDER BY %s" % (orderby)
+    rows = select(sql, param=condition, **kwargs)
+    return rows
+
+
+def add_data(table, param, **kwargs):
+    """
+    插入数据到一个表
+    :param {string} table: 要插入的表的名称(注意:表名的前缀"t_"也要求写,如果有的话)
+    :param {dict} param: 要插入的内容
+    :param {int} clash: 发生主键冲突,或者唯一键冲突时的返回值,默认1
+    :param {bool} rowid: 为 True则在insert语句时返回新增主键(没有主键则返回影响的行数),为False则只返回影响行数(默认False)
+    :param {bool} transaction: 为  True 则开启事务(成功会commit,失败会rollback),为 False 则不开启事务(默认开启)
+    :param conn: 数据库连接(有传则使用传来的,没有则自动获取,便于使用事务)
+    :param cursor: 数据库连接的 Cursor Object(有传则使用传来的,没有则自动获取,便于使用事务)
+    :return {int}: 返回执行SQL影响的行数(插入则返回新增的主键值/影响行数),执行有异常时返回 -1
+    @example
+        # 添加一行
+        rows = add_data('goods_log', {'bid':'kc','name':"e'ee"})
+            实际执行: INSERT INTO goods_log (bid, name) VALUES ('kc', 'e''ee')
+
+        # 添加多行
+        rows = add_data('goods_log', [{'bid':'kc','name':"哈哈"}, {'bid':'kc','name':"呵呵"}])
+           实际执行: INSERT INTO goods_log (bid, name) VALUES ('kc', '哈哈'), ('kc', '呵呵')
+    """
+    # 只添加一行数据
+    if isinstance(param, dict):
+        sql = add_sql(table, param)
+        row = execute(sql, param=param, **kwargs)
+        return row
+    # 添加多行数据
+    elif isinstance(param, (list, tuple, set)) and len(param) >= 1:
+        if isinstance(param, set):
+            param = list(param)
+        sql = add_sql(table, param[0])
+        row = executemany(sql, param=param, **kwargs)
+        return row
+
+
+def add_datas(table_list, **kwargs):
+    """
+    一起插入多个语句,原子操作，其中任意一个操作语句失败都会全体回滚
+    :param {list<tuple<string,dict>>} table_list: 形式为 [(table_name1, param1),(table_name2, param2),(table_name3, param3),...]
+    :param {bool} must_rows: 为 True则要求每个SQL语句影响的行数都必须大于1,影响行数为0会认为执行出错。为False则允许执行影响数为0
+    :param {bool} transaction: 为  True 则开启事务(成功会commit,失败会rollback),为 False 则不开启事务(默认开启)
+    :param conn: 数据库连接(有传则使用传来的,没有则自动获取,便于使用事务)
+    :param cursor: 数据库连接的 Cursor Object(有传则使用传来的,没有则自动获取,便于使用事务)
+    :return {int}: 返回执行SQL影响的行数,执行有异常时返回 -1
+    @example
+        rows = add_datas([('goods_log',{'bid':'333','orderid':"e''ee"}),('product_log',{'bid':'444','orderid':u"哎f'f"})])
+    """
+    sql_list = []
+    for table, params in table_list:
+        sql = add_sql(table, params)
+        sql_list.append((sql, params,))
+    row = execute_list(sql_list, **kwargs)
+    return row
+
+
+def del_data(table, condition, **kwargs):
+    """
+    删除一个表的数据
+    :param {string} table: 要删除数据的表的名称(注意:表名的前缀"t_"也要求写,如果有的话)
+    :param {dict} condition: 要删除的条件,必须传此参数
+    :param {bool} transaction: 为  True 则开启事务(成功会commit,失败会rollback),为 False 则不开启事务(默认开启)
+    :param conn: 数据库连接(有传则使用传来的,没有则自动获取,便于使用事务)
+    :param cursor: 数据库连接的 Cursor Object(有传则使用传来的,没有则自动获取,便于使用事务)
+    :return {int}: 返回执行SQL影响的行数(插入则返回新增的主键值/影响行数),执行有异常时返回 -1
+    @example
+        rows = del_data('goods_log', {'bid':333,'orderid':"eee"})
+        实际执行: DELETE FROM goods_log WHERE  bid=333 AND orderid ='eee'
+    """
+    if not condition:
+        return 0
+    condition_sql = format_sql(' AND ', condition)
+    sql = u'DELETE FROM "%s" WHERE %s' % (get_table(table), condition_sql)
+    row = execute(sql, param=condition, **kwargs)
+    return row
+
+
+def update_data(table, param, condition, **kwargs):
+    """
+    修改一个表的数据
+    :param {string} table: 要修改数据的表的名称(注意:表名的前缀"t_"也要求写,如果有的话)
+    :param {dict} param: 要修改的数据,必须传此参数
+    :param {dict} condition: 要修改的条件,必须传此参数
+    :param {bool} transaction: 为  True 则开启事务(成功会commit,失败会rollback),为 False 则不开启事务(默认开启)
+    :param conn: 数据库连接(有传则使用传来的,没有则自动获取,便于使用事务)
+    :param cursor: 数据库连接的 Cursor Object(有传则使用传来的,没有则自动获取,便于使用事务)
+    :return {int}: 返回执行SQL影响的行数(插入则返回新增的主键值/影响行数),执行有异常时返回 -1
+    @example
+        rows = update_data('goods_log', {'bid':333,'orderid':"eee"}, {'id':223})
+        实际执行: UPDATE goods_log SET bid=333, orderid ='eee' WHERE id=223
+    """
+    if not param:
+        return 0
+    up_sql = format_sql(' , ', param, keys_prefix='up_')
+    condition_sql = format_sql(' AND ', condition, keys_prefix='cond_')
+    sql = u'UPDATE "%s" SET %s WHERE %s' % (get_table(table), up_sql, condition_sql)
+    # 参数合并(由于修改的数据字段名与条件的字段名有可能完全一样,所以得用前缀区分)
+    sql_param = {}
+    for k, v in param.items():
+        sql_param[u'up_%s' % k] = v
+    if condition:
+        for k, v in condition.items():
+            sql_param[u'cond_%s' % k] = v
+    row = execute(sql, param=sql_param, **kwargs)
+    return row
+
+
+def format_sql(sep, param, keys_prefix='', **kwargs):
+    """
+    格式化SQL语句
+    :param {string} seq: 分隔符
+    :param {dict} param: 条件或值dict
+    :param {list} keys_prefix: 替位符前缀(条件里面由于有相同的字段名,所以替位符得加上特殊前缀来标识)
+    :return {string}: 语句拼接后的结果,如:
+            format_sql(' AND ', {'flag':'xxx', 'v':2.56}) 返回: "flag=:flag AND v=:v"
+            format_sql(', ', {'flag':'xxx', 'v':2.56}) 返回: "flag=:flag, v=:v"
+    """
+    if not param or not isinstance(param, dict):
+        return '1=1'
+    return (u"%s" % sep).join(u'"%s"=:%s%s' % (unicode(x).upper(), keys_prefix, unicode(x)) for x in param.keys())
+
+
+def get_table(table, **kwargs):
+    """
+    转化表格名
+    :param {string} table: 表格名
+    :return {string}: 转化后的表格名
+    """
+    table = table.replace('"', '').replace("'", '')
+    return str(table).upper()
+
+
+def add_sql(table, param, **kwargs):
+    """
+    转成SQL插入语句
+    :param {string} table: 表格名
+    :param {dict} param: 条件或值dict
+    :return {string}: 语句拼接后的结果,如:   INSERT INTO tableName (...) VALUES (...)
+    """
+    column = u", ".join(u'"%s"' % unicode(x).upper() for x in param.keys())
+    value = u", ".join(u":%s" % unicode(x) for x in param.keys())
+    sql = u'INSERT INTO "%s" (%s) VALUES (%s)' % (get_table(table), column, value)
+    return sql
+
+
 class Atom(object):
     """
     使用事务,原子地操作多个语句时,可使用本类
@@ -380,8 +554,8 @@ class Atom(object):
         """
         conn, cursor, db_key = Atom.__get_conn(**kwargs)
         if not conn:
-            logging.error('[red]mysql connection error[/red], new Atom() fail', extra={'color': True})
-            raise RuntimeError(u"mysql 数据库连接不上")
+            logging.error('[red]oracle connection error[/red], new Atom() fail', extra={'color': True})
+            raise RuntimeError(u"oracle 数据库连接不上")
         # 开启事务
         conn.begin()
         self.conn = conn
@@ -421,28 +595,25 @@ class Atom(object):
                 # 数据库连接配置
                 global CONFIG
                 db_config = CONFIG.copy()
-                db_config.pop('mincached', None)
-                db_config.pop('maxcached', None)
-                db_config.pop('maxshared', None)
-                db_config.pop('maxconnections', None)
                 db_config.update(kwargs)
                 try:
                     conn = oracle.connect('{user}/{password}@{host}:{port}/{sid}'.format(**db_config))
                     cursor = conn.cursor()
                     return conn, cursor, db_key
                 except Exception as e:
-                    logging.error(u'[red]mysql connection error[/red]:%s', e, exc_info=True, extra={'color': True})
+                    logging.error(u'[red]oracle connection error[/red]:%s', e, exc_info=True, extra={'color': True})
                     raise
             # 连接超时或已断开
             except Exception as e:
                 repeat_time -= 1
-                logging.error(u'[red]mysql connection error[/red]:%s', e, exc_info=True, extra={'color': True})
+                logging.error(u'[red]oracle connection error[/red]:%s', e, exc_info=True, extra={'color': True})
                 try:
                     if cursor:
                         cursor.close()
                     if conn:
                         conn.close()
-                except:pass
+                except:
+                    pass
         return conn, cursor, db_key
 
     @staticmethod
@@ -455,7 +626,8 @@ class Atom(object):
         try:
             if cursor:
                 cursor.close()
-        except:pass
+        except:
+            pass
 
     def commit(self, dispose=True):
         """
@@ -489,7 +661,8 @@ class Atom(object):
         """Delete the db connection."""
         try:
             self.dispose()
-        except:pass
+        except:
+            pass
 
     # 下面动态加入本文件的所有函数作为类里面的函数
     # 即:  'ping', 'select', 'get', 'execute', 'execute_list', 'executemany', 'query_data', 'add_data', 'add_datas', 'del_data', 'update_data', 'format_sql', 'add_sql'

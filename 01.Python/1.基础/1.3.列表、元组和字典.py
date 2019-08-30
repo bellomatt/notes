@@ -741,17 +741,49 @@
 列表使用中途,修改列表长度问题
     ### list, set, dict 都会有此问题。 使用的中途不应该随意修改长度,否则极容易出问题。 ###
 
-    # 示例1,列表使用中途,修改列表长度
-    odd = lambda x : bool(x % 2)
+    # 错误示例1,列表遍历中途,直接删除元素
+    odd = lambda x: x > 5
+    numbers = [n for n in range(10)]
+    for i in numbers:
+        if not odd(i):
+            numbers.remove(i)  # 这一行不报错，但删漏元素(由于中途长度有改变，导致部分元素没有遍历到)
+    print(numbers) # 打印: [1, 3, 5, 6, 7, 8, 9]
+
+    # 错误示例2,列表使用中途,按下标删除元素
+    odd = lambda x: x > 5
     numbers = [n for n in range(10)]
     for i in range(len(numbers)):
-        if odd(numbers[i]):
-            del numbers[i]  # 这一行会运行到第5次时抛异常,下标越界
+        if not odd(numbers[i]):
+            del numbers[i]  # 这一行会抛异常,下标越界。   IndexError: list index out of range
 
 
-    # 示例2,正确写法,重新用一个列表保存
-    odd = lambda x : bool(x % 2)
+    # 解决示例1,遍历在新的列表操作，删除是在原来的列表操作
+    odd = lambda x: x > 5
     numbers = [n for n in range(10)]
-    numbers[:] = [n for n in numbers if not odd(n)]  # 完美地修改了列表,而且连引用地址都没变
-    #numbers = [n for n in numbers if not odd(n)] # 这样写法虽然也可以接收,但这会变成另外一个引用地址, id(numbers) 的值变了
-    print numbers # 打印:[0, 2, 4, 6, 8]
+    for i in numbers[:]:  # 对应错误1的写法，仅做微小修改
+        if not odd(i):
+            numbers.remove(i)
+    print(numbers) # 打印: [6, 7, 8, 9]
+
+    # 解决示例2,按下标倒序删除
+    # 因为列表总是“向前移”，所以可以倒序遍历，即使后面的元素被删除了，还没有被遍历的元素和其坐标还是保持不变的。
+    odd = lambda x: x > 5
+    numbers = [n for n in range(10)]
+    for i in range(len(numbers)-1, -1, -1):  # 对应错误2的写法，仅做微小修改
+        if not odd(numbers[i]):
+            del numbers[i]
+    print(numbers) # 打印: [6, 7, 8, 9]
+
+    # 解决示例3,重新用一个列表保存
+    odd = lambda x: x > 5
+    numbers = [n for n in range(10)]
+    numbers[:] = [n for n in numbers if odd(n)]  # 完美地修改了列表,而且连引用地址都没变
+    #numbers = [n for n in numbers if odd(n)] # 这样写法虽然也可以接收,但这会变成另外一个引用地址, id(numbers) 的值变了
+    print(numbers) # 打印: [6, 7, 8, 9]
+
+    # 解决示例4,使用 filter 函数
+    odd = lambda x: x > 5
+    numbers = [n for n in range(10)]
+    numbers[:] = filter(odd, numbers)
+    print(numbers) # 打印: [6, 7, 8, 9]
+

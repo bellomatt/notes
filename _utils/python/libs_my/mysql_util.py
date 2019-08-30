@@ -256,12 +256,12 @@ def select(sql, param=None, fetchone=False, **kwargs):
             count = cursor.execute(sql, param)
         # 查不到时
         if count <= 0:
-            return None if fetchone == True else tuple()
+            return None if fetchone is True or fetchone == 1 else tuple()
         # 只返回1行(True 与 1 一样)
-        elif fetchone == True:
+        elif fetchone is True or fetchone == 1:
             return cursor.fetchone()
         # 返回所有
-        elif fetchone == False:
+        elif fetchone is False or fetchone == 0:
             return cursor.fetchall()
         # 返回指定行数
         elif isinstance(fetchone, (int, long)):

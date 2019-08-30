@@ -98,28 +98,33 @@ __new__ 方法
     __new__ 方法的调用是发生在 __init__ 之前的。先是 __new__ 创建了 类实例，然后才可以用 __init__ 初始化实例。
     __new__() 方法始终都是类的静态方法，即使没有被加上静态方法装饰器。
 
+__call__ 方法
+    让类的实例（对象）可以被当做函数对待
 
     例:
-    class Person(object): # 注：py2的旧类不执行 __new__, 得用
-
+    class Person(object):  # 注：py2的旧类不执行 __new__, 得用新类
         def __new__(cls, name):
             print('NEW ', name)
             return super(Person, cls).__new__(cls)
-
         def __init__(self, name):
             print('INIT ', name)
             self.test_name = name
-
+        def __call__(self, a, b):
+            self.a = a
+            self.b = b
+            print('CALL ({}, {})'.format(self.a, self.b))
         def sayHi(self):
-            print('Hello, my name is ' + self.test_name)
             self.test = 'sss'  # 属性可以随处定义,不需事先定义
-            print('the test is ' + self.test)
+            print('Hello, my name is ' + self.test_name + ', ' + self.test)
 
-    p = Person('Swaroop') # 先打印 NEW, 然后再打印 INIT
-    p.sayHi() # 打印: Swaroop , sss
-    print('the Person test is ' + p.test) # 打印: sss
+    p = Person('Swaroop')  # 先打印 NEW, 然后再打印 INIT
+    p.sayHi()  # 打印: Hello, my name is Swaroop, sss
+    print('the Person test is ' + p.test)  # 打印: the Person test is sss
     p.test2 = 'haha...'
-    print('the Person test2 is ' + p.test2) # 打印: haha...
+    print('the Person test2 is ' + p.test2)  # 打印: the Person test2 is haha...
+    p(1, 2)  # 打印: CALL (1, 2)
+    print(callable(p))  # True
+
 
     名称   说明
     __init__(self,...) 这个方法在新建对象恰好要被返回使用之前被调用。
