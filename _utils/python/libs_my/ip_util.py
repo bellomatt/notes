@@ -11,8 +11,9 @@ import socket
 import urllib2
 import logging
 
+__all__ = (
+'init', 'auth_ip', 'is_server_ip', 'in_list', 'is_ip', 'is_local_ip', 'get_tornado_ip', 'get_django_ip', 'get_host')
 
-__all__=('init', 'auth_ip', 'is_server_ip', 'in_list', 'is_ip', 'is_local_ip', 'get_tornado_ip', 'get_django_ip', 'get_host')
 
 def init(**kwargs):
     """
@@ -41,7 +42,7 @@ def init(**kwargs):
 # 信任的ip列表(列表里包含 'unlimited' 表示不限制, 允许*作为匹配符如: '192.168.1.*', '1.*')
 AUTH_IP_LIST = []
 # 服务器的ip列表
-#SERVER_IP_LIST = ['113.31.*', '117.121.*']
+# SERVER_IP_LIST = ['113.31.*', '117.121.*']
 SERVER_IP_LIST = []
 
 
@@ -56,6 +57,7 @@ def auth_ip(ip):
         return True
     return in_list(ip, AUTH_IP_LIST)
 
+
 def is_server_ip(ip):
     """
     检查IP地址是否服务器地址
@@ -66,6 +68,7 @@ def is_server_ip(ip):
     if not SERVER_IP_LIST:
         return False
     return in_list(ip, SERVER_IP_LIST)
+
 
 def in_list(ip, ip_list):
     """
@@ -106,7 +109,9 @@ def is_ip(ip):
     """
     if not ip or not isinstance(ip, basestring):
         return False
-    return len([i for i in ip.split('.') if i.isdigit() and (0 <= int(i) <= 255) and (not i.startswith('0') or len(i)==1) ])==4
+    return len([i for i in ip.split('.') if
+                i.isdigit() and (0 <= int(i) <= 255) and (not i.startswith('0') or len(i) == 1)]) == 4
+
 
 def is_local_ip(ip):
     """
@@ -142,11 +147,12 @@ def _get_remote_ip(ip_list):
         return ip_list
     # 包含多个ip地址
     if "," in ip_list:
-        ipList = ip_list.strip().replace(' ','').split(",")
+        ipList = ip_list.strip().replace(' ', '').split(",")
         for ip in ipList:
             if is_ip(ip) and not is_local_ip(ip) and not is_server_ip(ip):
                 return ip
     return None
+
 
 def get_tornado_ip(request):
     """
@@ -168,6 +174,7 @@ def get_tornado_ip(request):
     if not client_ip:
         client_ip = _get_remote_ip(headers.get("X-Forwarded-For", ""))
     return client_ip
+
 
 def get_django_ip(request):
     """
@@ -193,27 +200,30 @@ def http_get(url, param=None):
     # 有拦截代码直接请求，需要伪装成浏览器访问
     headers = {
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        #'Accept-Encoding': 'gzip, deflate, sdch',
+        # 'Accept-Encoding': 'gzip, deflate, sdch',
         'Accept-Language': 'zh-CN,zh;q=0.8',
         'User-Agent': 'Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36'
     }
     request = urllib2.Request(url=url, data=None, headers=headers)
     response = urllib2.urlopen(request, timeout=10)
     html = response.read()
-    #logging.warn(html)
+    # logging.warn(html)
     return html
 
-_host_ip = None # 缓存本机ip,没必要每次都去读取
+
+_host_ip = None  # 缓存本机ip,没必要每次都去读取
 # 获取本机ip地址的外部网站列表(写这里为了允许其它文件修改)
 _get_host_net_list = set([
-        "https://www.ip.cn/",
-        "https://ip.911cha.com/",
-        "http://api.k780.com/?app=ip.local&appkey=10003&sign=b59bc3ef6191eb9f747dd4e83c99f2a4&format=json",
-        #"http://ip.taobao.com/service/getIpInfo.php?ip=myip",
-        #"http://ip.qq.com/cgi-bin/myip", # 腾讯阻止了程序直接访问此页面，故获取不到
-        "http://2019.ip138.com/ic.asp",
-        #"http://www.whereismyip.com/",
-    ])
+    "https://www.ip.cn/",
+    "https://ip.911cha.com/",
+    "http://api.k780.com/?app=ip.local&appkey=10003&sign=b59bc3ef6191eb9f747dd4e83c99f2a4&format=json",
+    # "http://ip.taobao.com/service/getIpInfo.php?ip=myip",
+    # "http://ip.qq.com/cgi-bin/myip", # 腾讯阻止了程序直接访问此页面，故获取不到
+    "http://2019.ip138.com/ic.asp",
+    # "http://www.whereismyip.com/",
+])
+
+
 def get_host():
     """
     获取本机的外网ip地址
@@ -243,7 +253,7 @@ def get_host():
     for url in _get_host_net_list:
         try:
             res = http_get(url)
-            this_ip = re.search('\d+\.\d+\.\d+\.\d+',res).group(0)
+            this_ip = re.search('\d+\.\d+\.\d+\.\d+', res).group(0)
             if is_ip(this_ip):
                 _host_ip = this_ip
                 return _host_ip
@@ -255,5 +265,5 @@ def get_host():
 
 
 if __name__ == "__main__":
-    #print ip_auth('1.1.1')
-    print get_host()
+    # print ip_auth('1.1.1')
+    print(get_host())

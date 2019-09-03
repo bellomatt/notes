@@ -181,7 +181,7 @@ class Test_Django_db(unittest.TestCase):
         has_error = False
         try:
             row = django_db.execute_sql(u"INSERT INTO t_persons(c_name c_age) values('张三', 15)")
-        except Exception, e:
+        except Exception as e:
             has_error = True # 上面程序要求必须报错
         assert has_error
         record = NOW_LOG_RECORD

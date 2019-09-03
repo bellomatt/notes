@@ -32,16 +32,17 @@ class RC4Test(unittest.TestCase):
         assert rc4.decode(secret_txt, key) == txt
 
         check_unicode = True
-        try:
-            # py2 的中文加密测试
-            unicode
-            txt = u'哈哈5+-*/,.,.dfd08&^%$#@!~*()_+-='
-            check_unicode = False
-            secret_txt = rc4.encode(txt, key)
-            assert secret_txt
-            assert rc4.decode(secret_txt, key) == txt.encode("utf-8")
-            check_unicode = True
-        except NameError:pass
+        if PY2:
+            try:
+                # py2 的中文加密测试
+                unicode
+                txt = u'哈哈5+-*/,.,.dfd08&^%$#@!~*()_+-='
+                check_unicode = False
+                secret_txt = rc4.encode(txt, key)
+                assert secret_txt
+                assert rc4.decode(secret_txt, key) == txt.encode("utf-8")
+                check_unicode = True
+            except NameError:pass
         assert check_unicode
 
 
@@ -172,16 +173,17 @@ class RC4Test(unittest.TestCase):
         assert rc4.decode_symmetrical(secret_txt, key) == txt
 
         check_unicode = True
-        try:
-            # py2 的中文加密测试
-            unicode
-            txt = u'哈哈5+-*/,.,.dfd08&^%$#@!~*()_+-='
-            check_unicode = False
-            secret_txt = rc4.encode_symmetrical(txt, key)
-            assert secret_txt
-            assert rc4.decode_symmetrical(secret_txt, key) == txt.encode("utf-8")
-            check_unicode = True
-        except NameError:pass
+        if PY2:
+            try:
+                # py2 的中文加密测试
+                unicode
+                txt = u'哈哈5+-*/,.,.dfd08&^%$#@!~*()_+-='
+                check_unicode = False
+                secret_txt = rc4.encode_symmetrical(txt, key)
+                assert secret_txt
+                assert rc4.decode_symmetrical(secret_txt, key) == txt.encode("utf-8")
+                check_unicode = True
+            except NameError:pass
         assert check_unicode
 
         # 一一对应测试

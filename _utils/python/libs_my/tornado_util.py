@@ -255,11 +255,11 @@ def fn(*out_args, **out_kwargs):
                 self.set_header("Content-Type", "text/html;charset=UTF-8")
 
         # 请求被调函数时,参数不对应
-        except TypeError, e:
+        except TypeError as e:
             logger.error(u"[red]请求参数错误:%s[/red], %s, 参数: %s, %s", e, url, args, kwargs, exc_info=True, extra={'color':True})
             res = out_kwargs.get('paramter_error', CONFIG.get('paramter_error'))
         # 请求被调函数时,抛出其它异常
-        except Exception, e:
+        except Exception as e:
             logger.error(u'[red]接口异常:%s[/red]: %s 返回:%s', e, url, res, exc_info=True, extra={'color':True})
             res = out_kwargs.get('unknow_error', CONFIG.get("unknow_error"))
         finally:
@@ -320,10 +320,10 @@ def fn(*out_args, **out_kwargs):
             # 函数执行有可能不成功
             try:
                 return method(None, *args, **kwargs) # 因为被调用函数需要加上首参数 self, 这里约定内部调用是此参数为 None
-            except TypeError, e:
+            except TypeError as e:
                 logger.error(u"[red]函数执行错误:%s[/red] %s.%s,参数:%s,%s", e, method.__module__, method.__name__, args, kwargs, exc_info=True, extra={'color':True})
                 return out_kwargs.get('paramter_error', CONFIG.get('paramter_error'))
-            except Exception, e:
+            except Exception as e:
                 logger.error(u"[red]函数执行错误:%s[/red] %s.%s,参数:%s,%s", e, method.__module__, method.__name__, args, kwargs, exc_info=True, extra={'color':True})
                 return out_kwargs.get('unknow_error', CONFIG.get("unknow_error"))
         return wrapper

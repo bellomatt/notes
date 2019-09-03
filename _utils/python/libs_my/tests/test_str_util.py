@@ -25,13 +25,13 @@ class StrUtilTest(unittest.TestCase):
         # 处理 utf-8 编码
         a = "哈哈"
         assert isinstance(str_util.to_unicode(a), unicode)
-        str_util.to_str(a).decode("utf-8") # 可正常运行即可
+        str_util.to_str(a).decode("utf-8")  # 可正常运行即可
         assert isinstance(str_util.to_str(a), str)
 
         # 处理 unicode 编码
         a = u"哈哈"
         assert isinstance(str_util.to_unicode(a), unicode)
-        str_util.to_str(a).decode("utf-8") # 可正常运行即可
+        str_util.to_str(a).decode("utf-8")  # 可正常运行即可
         assert isinstance(str_util.to_str(a), str)
 
         # 编码转成人能阅读的
@@ -48,67 +48,83 @@ class StrUtilTest(unittest.TestCase):
     # deep_str 测试
     def test_deep_str(self):
         # 测试键值是否同时转
-        assert str_util.deep_str({'a':[1,1,2,[u'哈哈','33',]],'测试值':(3,4,u'ff',)}) == {u'a': [1, 1, 2, [u'哈哈', u'33']], u'测试值': (3, 4, u'ff')}
-        assert str_util.deep_str({'a':[1,1,2,['哈哈','33',]],u'测试值':(3,4,u'ff',)}, str_unicode=str_util.to_str) == {'a': [1, 1, 2, ['哈哈', '33']], '测试值': (3, 4, 'ff')}
+        assert str_util.deep_str({'a': [1, 1, 2, [u'哈哈', '33', ]], '测试值': (3, 4, u'ff',)}) == {
+            u'a': [1, 1, 2, [u'哈哈', u'33']], u'测试值': (3, 4, u'ff')}
+        assert str_util.deep_str({'a': [1, 1, 2, ['哈哈', '33', ]], u'测试值': (3, 4, u'ff',)},
+                                 str_unicode=str_util.to_str) == {'a': [1, 1, 2, ['哈哈', '33']], '测试值': (3, 4, 'ff')}
 
         # 不能改变原参数值
-        arg1 = {'aa':4.55, 'b1':{'ll':66.55, u'测试':554, '测试2':u'测试2值', 'c':[1,u'哈啊', '啊哈'], u'元组':(1,'22',3.55,set('abcd'), decimal.Decimal('55.6722'), datetime.datetime(2015, 6, 28, 14, 19, 41), uuid.UUID('81ab20bf-ecd9-4cc7-beb1-498da7e0b75d') )}}
+        arg1 = {'aa': 4.55, 'b1': {'ll': 66.55, u'测试': 554, '测试2': u'测试2值', 'c': [1, u'哈啊', '啊哈'], u'元组': (
+        1, '22', 3.55, set('abcd'), decimal.Decimal('55.6722'), datetime.datetime(2015, 6, 28, 14, 19, 41),
+        uuid.UUID('81ab20bf-ecd9-4cc7-beb1-498da7e0b75d'))}}
         arg2 = copy.deepcopy(arg1)
         arg3 = str_util.deep_str(arg1, str_unicode=str_util.to_str)
         assert arg1 == arg2
         assert arg1 != arg3
-        assert arg3 == {'aa':4.55, 'b1':{'ll':66.55, '测试':554, '测试2':'测试2值', 'c':[1,'哈啊', '啊哈'], '元组':(1,'22',3.55,set('abcd'), 55.6722, '2015-06-28 14:19:41', '81ab20bfecd94cc7beb1498da7e0b75d')}}
+        assert arg3 == {'aa': 4.55, 'b1': {'ll': 66.55, '测试': 554, '测试2': '测试2值', 'c': [1, '哈啊', '啊哈'], '元组': (
+        1, '22', 3.55, set('abcd'), 55.6722, '2015-06-28 14:19:41', '81ab20bfecd94cc7beb1498da7e0b75d')}}
         arg4 = str_util.deep_str(arg1, all2str=True)
-        assert arg4 == {u'aa':u'4.55', u'b1':{u'll':u'66.55', u'测试':u'554', u'测试2':u'测试2值', u'c':[u'1',u'哈啊', u'啊哈'], u'元组':(u'1',u'22',u'3.55',set('abcd'), u'55.6722', u'2015-06-28 14:19:41', u'81ab20bfecd94cc7beb1498da7e0b75d')}}
+        assert arg4 == {u'aa': u'4.55',
+                        u'b1': {u'll': u'66.55', u'测试': u'554', u'测试2': u'测试2值', u'c': [u'1', u'哈啊', u'啊哈'], u'元组': (
+                        u'1', u'22', u'3.55', set('abcd'), u'55.6722', u'2015-06-28 14:19:41',
+                        u'81ab20bfecd94cc7beb1498da7e0b75d')}}
         arg5 = str_util.deep_str(arg1, all2str='time')
-        assert arg5 == {u'aa':4.55, u'b1':{u'll':66.55, u'测试':554, u'测试2':u'测试2值', u'c':[1,u'哈啊', u'啊哈'], u'元组':(1,u'22',3.55,set('abcd'), 55.6722, u'2015-06-28 14:19:41', '81ab20bfecd94cc7beb1498da7e0b75d')}}
+        assert arg5 == {u'aa': 4.55, u'b1': {u'll': 66.55, u'测试': 554, u'测试2': u'测试2值', u'c': [1, u'哈啊', u'啊哈'],
+                                             u'元组': (1, u'22', 3.55, set('abcd'), 55.6722, u'2015-06-28 14:19:41',
+                                                     '81ab20bfecd94cc7beb1498da7e0b75d')}}
 
         # int, float 类型的转换
-        a = {1:5.444, ('', 44.55):[12, 55.50]}
+        a = {1: 5.444, ('', 44.55): [12, 55.50]}
         assert str_util.deep_str(a) == a
-        assert str_util.deep_str(a, all2str=True) == {u'1':u'5.444', (u'', u'44.55'):[u'12', u'55.5']}
+        assert str_util.deep_str(a, all2str=True) == {u'1': u'5.444', (u'', u'44.55'): [u'12', u'55.5']}
 
         # 截取最大长度
-        d = [u"eval 处理是为了让“时”,“包”等字符转为人可以阅读的文字", {123456789012345:'123456789012345'}]
-        assert str_util.deep_str(d, max='13') == [u"eval 处理是为了让“时...", {123456789012345:u'1234567890123...'}]
-        assert str_util.deep_str(d, max=13, str_unicode=str_util.to_str) == ["eval 处理是为了让“时...", {123456789012345:'1234567890123...'}]
+        d = [u"eval 处理是为了让“时”,“包”等字符转为人可以阅读的文字", {123456789012345: '123456789012345'}]
+        assert str_util.deep_str(d, max='13') == [u"eval 处理是为了让“时...", {123456789012345: u'1234567890123...'}]
+        assert str_util.deep_str(d, max=13, str_unicode=str_util.to_str) == ["eval 处理是为了让“时...",
+                                                                             {123456789012345: '1234567890123...'}]
 
     # deep_str 转 object 测试
     def _test_deep_object(self):
         # 类的转换
         class B(object):
             a = arg1
+
         class A(B):
             obj = arg1
             b = B
+
             def __init__(self, arg):
                 self.arg = arg
+
             # 类里的函数测试
-            def test2(self, arg):pass
-            @staticmethod # 申明此方法是一个静态方法，外部可以直接调用
-            def tt(a):pass
+            def test2(self, arg): pass
+
+            @staticmethod  # 申明此方法是一个静态方法，外部可以直接调用
+            def tt(a): pass
+
             @classmethod  # 申明此方法是一个类方法
-            def class_method(class_name, arg1):pass
+            def class_method(class_name, arg1): pass
 
         c1 = A(arg1)
         assert c1.obj == arg1
-        assert vars(c1) == {'arg':arg1} # 当前类不改变。 obj 是静态属性，不包含在 vars 内
+        assert vars(c1) == {'arg': arg1}  # 当前类不改变。 obj 是静态属性，不包含在 vars 内
 
         c2 = str_util.deep_str(c1, str_unicode=str_util.to_str)
-        assert vars(c2) == {'a':arg3, 'b':B, 'obj':arg3, 'arg':arg3}
+        assert vars(c2) == {'a': arg3, 'b': B, 'obj': arg3, 'arg': arg3}
         c3 = str_util.deep_str(c1, all2str=True)
-        assert vars(c3) == {'a':arg4, 'b':B, 'obj':arg4, 'arg':arg4}
+        assert vars(c3) == {'a': arg4, 'b': B, 'obj': arg4, 'arg': arg4}
         c4 = str_util.deep_str(c1, all2str='time')
-        assert vars(c4) == {'a':arg5, 'b':B, 'obj':arg5, 'arg':arg5}
-
+        assert vars(c4) == {'a': arg5, 'b': B, 'obj': arg5, 'arg': arg5}
 
     # to_human 测试
     def test_toHuman(self):
-        assert str_util.to_human({'a':"\u8d26\u53f7: ''',\"\"\"113590532\\n\u8d26\u6237\u4f59\u989d;\xE5\x8C\x85 "}) == u"""{
+        assert str_util.to_human({'a': "\u8d26\u53f7: ''',\"\"\"113590532\\n\u8d26\u6237\u4f59\u989d;\xE5\x8C\x85 "}) == u"""{
   "a": "账号: ''',\\"\\"\\"113590532\\\\n账户余额;包 "
 }"""
 
-        assert str_util.to_human("eval 处理是为了让“\u65f6”,“\xE5\x8C\x85”等字符转为人可以阅读的文字") == u'eval 处理是为了让“时”,“包”等字符转为人可以阅读的文字'
+        assert str_util.to_human(
+            "eval 处理是为了让“\u65f6”,“\xE5\x8C\x85”等字符转为人可以阅读的文字") == u'eval 处理是为了让“时”,“包”等字符转为人可以阅读的文字'
 
         assert str_util.to_human('\xE5\x8C\x85\xE6\x9C\x88\xE5\xA5\x97\xE9\xA4\x90') == u"包月套餐"
 
@@ -117,20 +133,22 @@ class StrUtilTest(unittest.TestCase):
         assert str_util.mod(u"哈哈%s呵呵", 22) == u"哈哈22呵呵"
         assert str_util.mod("哈哈%s呵呵", u"看xx看") == "哈哈看xx看呵呵"
         assert str_util.mod("哈哈%s呵呵") == "哈哈%s呵呵"
-        assert str_util.mod(u"哈哈%s呵%s呵", (1,2)) == u"哈哈1呵2呵"
-        assert str_util.mod(u"哈哈%(a)s呵%(b)d呵", {"a":u"好", 'b':55.32}) == u"哈哈好呵55呵"
-
+        assert str_util.mod(u"哈哈%s呵%s呵", (1, 2)) == u"哈哈1呵2呵"
+        assert str_util.mod(u"哈哈%(a)s呵%(b)d呵", {"a": u"好", 'b': 55.32}) == u"哈哈好呵55呵"
 
     # json2str 测试
     def test_json2str(self):
         # json to str 测试,要求保持 list 顺序,中文兼容,双引号括起字符串(字符串里面的双引号前面有斜杠转移)
-        value = {'a':[1,2,'呵xx呵', u'哈"哈', str_util.to_str('智汇云',encode='GBK')]}
+        value = {'a': [1, 2, '呵xx呵', u'哈"哈', str_util.to_str('智汇云', encode='GBK')]}
         json_value = '{"a": [1, 2, "\\u5475xx\\u5475", "\\u54c8\\"\\u54c8", "\\u667a\\u6c47\\u4e91"]}'
         assert str_util.json2str(value) == json_value
         assert str_util.to_json(json_value) == str_util.deep_str(value)
         # 加入时间测试
-        value2 = {'a':[1,2,'呵xx呵', u'哈"哈', str_util.to_str('智汇云',encode='GBK'), time.strptime('2014/03/25 19:05:33', '%Y/%m/%d %H:%M:%S')], u'eff_time': datetime.datetime(2015, 6, 28, 14, 19, 41), }
-        value3 = {'a':[1,2,'呵xx呵', u'哈"哈', str_util.to_str('智汇云',encode='GBK'), "2014-03-25 19:05:33"], u'eff_time': "2015-06-28 14:19:41"}
+        value2 = {'a': [1, 2, '呵xx呵', u'哈"哈', str_util.to_str('智汇云', encode='GBK'),
+                        time.strptime('2014/03/25 19:05:33', '%Y/%m/%d %H:%M:%S')],
+                  u'eff_time': datetime.datetime(2015, 6, 28, 14, 19, 41), }
+        value3 = {'a': [1, 2, '呵xx呵', u'哈"哈', str_util.to_str('智汇云', encode='GBK'), "2014-03-25 19:05:33"],
+                  u'eff_time': "2015-06-28 14:19:41"}
         json_value2 = '{"a": [1, 2, "\\u5475xx\\u5475", "\\u54c8\\"\\u54c8", "\\u667a\\u6c47\\u4e91", "2014-03-25 19:05:33"], "eff_time": "2015-06-28 14:19:41"}'
         assert str_util.json2str(value2) == json_value2
         assert str_util.to_json(json_value2) == str_util.deep_str(value3)
@@ -138,26 +156,23 @@ class StrUtilTest(unittest.TestCase):
         json_value = u"{'a': [1, 2, '\\u5475xx\\u5475', '\\xE5\\x8C\\x85']}"
         assert str_util.to_json(json_value) == eval(json_value)
 
-
     # gzip 压缩测试
     def test_gzip(self):
-        value = {'a':[1,2,'呵xx呵', u'哈"哈', str_util.to_str('智汇云',encode='GBK')]}
+        value = {'a': [1, 2, '呵xx呵', u'哈"哈', str_util.to_str('智汇云', encode='GBK')]}
         json_value = '{"a": [1, 2, "\\u5475xx\\u5475", "\\u54c8\\"\\u54c8", "\\u667a\\u6c47\\u4e91"]}'
         gzip_value = str_util.gzip_encode(value)
         value1 = str_util.gzip_decode(gzip_value)
-        assert value1 == json_value # 压缩之后会将 dict 转码成字符串
+        assert value1 == json_value  # 压缩之后会将 dict 转码成字符串
         assert len(gzip_value) < len(value1)
-
 
     # zlib 压缩测试
     def test_zlib(self):
-        value = {'a':[1,2,'呵xx呵', u'哈"哈', str_util.to_str('智汇云',encode='GBK')]}
+        value = {'a': [1, 2, '呵xx呵', u'哈"哈', str_util.to_str('智汇云', encode='GBK')]}
         json_value = '{"a": [1, 2, "\\u5475xx\\u5475", "\\u54c8\\"\\u54c8", "\\u667a\\u6c47\\u4e91"]}'
         zlib_value = str_util.zlib_encode(value)
         value2 = str_util.zlib_decode(zlib_value)
-        assert value2 == json_value # 压缩之后会将 dict 转码成字符串
+        assert value2 == json_value  # 压缩之后会将 dict 转码成字符串
         assert len(zlib_value) < len(value2)
-
 
     def test_MD5(self):
         # md5 测试
@@ -173,9 +188,9 @@ class StrUtilTest(unittest.TestCase):
         # is_MD5 测试
         assert str_util.is_MD5('e10adc3949ba59abbe56e057f20f883e')
         assert str_util.is_MD5(str_util.MD5(u'哈哈'))
-        assert not str_util.is_MD5('e10adc3949ba59abbe56e057f20f883') # 长度不对
-        assert not str_util.is_MD5('e10adc3949ba59abbe56e057f20f88xy') # 包含字母: xy
-        assert not str_util.is_MD5('e10adc3949ba59abbe56e057f20f88哈哈') # 包含中文
+        assert not str_util.is_MD5('e10adc3949ba59abbe56e057f20f883')  # 长度不对
+        assert not str_util.is_MD5('e10adc3949ba59abbe56e057f20f88xy')  # 包含字母: xy
+        assert not str_util.is_MD5('e10adc3949ba59abbe56e057f20f88哈哈')  # 包含中文
 
     def test_mobile(self):
         # is_mobile 测试
@@ -215,7 +230,7 @@ class StrUtilTest(unittest.TestCase):
         # is_credentials_no 测试
         assert str_util.is_credentials_no(u"61052619840731701X")
         assert str_util.is_credentials_no("441423199303042356")
-        assert str_util.is_credentials_no(441423199303042356L)
+        assert str_util.is_credentials_no(long(441423199303042356))
         assert str_util.is_credentials_no("44050919910607361x")
         assert str_util.is_credentials_no("37a924199303181624") == False
         assert str_util.is_credentials_no("370924199302301624") == False
@@ -226,7 +241,6 @@ class StrUtilTest(unittest.TestCase):
         assert str_util.is_credentials_no("44142393022323x") == False
         assert str_util.is_credentials_no("441423930230235") == False
         assert str_util.is_credentials_no("4414239302302351") == False
-
 
     def test_create_random(self):
         # create_random 测试
@@ -258,7 +272,7 @@ class StrUtilTest(unittest.TestCase):
 
         # 判断重复函数(这里要求必须生指定的才算)
         for i in range(5):
-            s1 = str_util.create_random(k=1, repeat_fun=lambda x:x!='5')
+            s1 = str_util.create_random(k=1, repeat_fun=lambda x: x != '5')
             assert s1 == '5'
 
     def test_number_format(self):
@@ -267,7 +281,7 @@ class StrUtilTest(unittest.TestCase):
         assert str_util.number_format(None) == '0'
         # int, long
         assert str_util.number_format(12345678) == '12,345,678'
-        assert str_util.number_format(12345678L) == '12,345,678'
+        assert str_util.number_format(long(12345678)) == '12,345,678'
         assert str_util.number_format('12345678') == '12,345,678'
         assert str_util.number_format(decimal.Decimal(12345678)) == '12,345,678'
         # float
@@ -277,7 +291,7 @@ class StrUtilTest(unittest.TestCase):
         assert str_util.number_format(decimal.Decimal(12345678.025)) == '12,345,678.03'
         # 负数 int, long
         assert str_util.number_format(-12345678) == '-12,345,678'
-        assert str_util.number_format(-12345678L) == '-12,345,678'
+        assert str_util.number_format(long(-12345678)) == '-12,345,678'
         assert str_util.number_format('-12345678') == '-12,345,678'
         assert str_util.number_format(decimal.Decimal(-12345678)) == '-12,345,678'
         # 负数 float
@@ -294,7 +308,5 @@ class StrUtilTest(unittest.TestCase):
         assert str_util.number_format(decimal.Decimal(0.0).quantize(decimal.Decimal('0.00'))) == '0.00'
 
 
-
 if __name__ == "__main__":
     unittest.main()
-

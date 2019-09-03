@@ -219,7 +219,7 @@ class FunctionTest(unittest.TestCase):
 
         logging.info(u'测试 keys 函数及返回长度检查')
         cache.set('a1', 1)
-        cache.set('b1', 1555L)
+        cache.set('b1', long(1555))
         cache.set('c1', 1)
         cache.set('d1', 2, -1) # 已过期
         assert cache.get('d1') == None

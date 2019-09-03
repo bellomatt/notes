@@ -55,7 +55,7 @@ def _send(client):
         response = client.get('/now/?t=%.4f' % sleep_time)
         assert response.status_code == 200
         assert response.content == 'now is %s' % now
-    except Exception, e:
+    except Exception as e:
         django_middleware.logger.error(u'延迟到警告时间的访问测试，出现异常，睡眠时间:%s', sleep_time, exc_info=True)
 
 

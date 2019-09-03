@@ -3,37 +3,34 @@
 """
 公用函数(时间处理)
 Created on 2014/10/16
-Updated on 2018/11/30
+Updated on 2019/9/3
 @author: Holemar
 """
 import re
 import time
 import datetime
 import calendar
+import logging
 
-__all__=('init', 'add', 'sub', 'to_string', 'to_time', 'to_datetime', 'to_date', 'to_timestamp', 'to_datetime_time', 'datetime_time_to_str',
-    'is_dst', 'add_datetime_time', 'sub_datetime_time', 'get_datetime', 'get_week_range', 'get_month_range', 'get_month_list')
+__all__ = ('add', 'sub', 'to_string', 'to_time', 'to_datetime', 'to_date', 'to_timestamp', 'to_datetime_time',
+           'datetime_time_to_str', 'is_dst', 'add_datetime_time', 'sub_datetime_time', 'get_datetime', 'get_week_range',
+           'get_month_range', 'get_month_list')
+
+DEFAULT_FORMAT = '%Y-%m-%d %H:%M:%S'  # 默认时间格式
+DEFAULT_DATE_FORMAT = '%Y-%m-%d'  # 默认日期格式
+DEFAULT_MONTH_FORMAT = '%Y-%m'  # 默认月份格式
+DEFAULT_TIME_FORMAT = '%H:%M:%S'
+FORMAT_LIST = (DEFAULT_FORMAT, '%Y-%m-%d %H:%M:%S.%f', DEFAULT_DATE_FORMAT, DEFAULT_MONTH_FORMAT,
+               '%Y年%m月%d日 %H时%M分%S秒', '%Y年%m月%d日　%H时%M分%S秒', '%Y年%m月%d日 %H时%M分', '%Y年%m月%d日　%H时%M分',
+               '%Y年%m月%d日 %H:%M:%S', '%Y年%m月%d日　%H:%M:%S', '%Y年%m月%d日 %H:%M', '%Y年%m月%d日　%H:%M', '%Y年%m月%d日',
+               '%Y/%m/%d %H:%M:%S', '%Y/%m/%d %H:%M:%S.%f', '%Y/%m/%d', '%Y%m%d', '%Y%m%d%H%M%S',
+               '%Y/%m/%d %H:%M', '%Y-%m-%d %H:%M', "%Y-%m-%dT%H:%M",
+               '%Y-%m-%d %p %I:%M:%S', '%Y-%m-%d %p %I:%M', '%Y/%m/%d %p %I:%M:%S', '%Y/%m/%d %p %I:%M',
+               "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%dT%H:%M:%S+08:00", "%Y-%m-%dT%H:%M:%S.%f+08:00",
+               )
 
 
-DEFAULT_FORMAT = '%Y-%m-%d %H:%M:%S' # 默认时间格式
-DEFAULT_DATE_FORMAT = '%Y-%m-%d' # 默认日期格式
-DEFAULT_MONTH_FORMAT = '%Y-%m' # 默认月份格式
-
-CONFIG = {
-    'format_str' : DEFAULT_FORMAT, # {string} 时间格式化的格式字符串
-
-    # format_list: {list<string>} 各种支持的时间格式
-    'format_list': (DEFAULT_FORMAT, '%Y-%m-%d %H:%M:%S.%f', DEFAULT_DATE_FORMAT,
-                    '%Y年%m月%d日 %H时%M分%S秒', '%Y年%m月%d日　%H时%M分%S秒', '%Y年%m月%d日 %H时%M分', '%Y年%m月%d日　%H时%M分',
-                    '%Y年%m月%d日 %H:%M:%S', '%Y年%m月%d日　%H:%M:%S', '%Y年%m月%d日 %H:%M', '%Y年%m月%d日　%H:%M', '%Y年%m月%d日',
-                    '%Y/%m/%d %H:%M:%S', '%Y/%m/%d %H:%M:%S.%f', '%Y/%m/%d', '%Y%m%d', '%Y%m%d%H%M%S',
-                    '%Y/%m/%d %H:%M', '%Y-%m-%d %H:%M', "%Y-%m-%dT%H:%M",
-                    '%Y-%m-%d %p %I:%M:%S', '%Y-%m-%d %p %I:%M', '%Y/%m/%d %p %I:%M:%S', '%Y/%m/%d %p %I:%M',
-                    "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%dT%H:%M:%S+08:00", "%Y-%m-%dT%H:%M:%S.%f+08:00",
-                    ),
-}
-
-# 兼容py3
+# fix py3
 try:
     long
 except NameError:
@@ -41,12 +38,12 @@ except NameError:
     basestring = str
     unicode = str
 
-# 时分秒 格式化字符串
+# hour,minute,second,microsecond format
 time_re = re.compile(
     r'(?P<hour>\d{1,2}):(?P<minute>\d{1,2})'
     r'(?::(?P<second>\d{1,2})(?:\.(?P<microsecond>\d{1,6})\d{0,6})?)?'
 )
-# 时间 格式化字符串
+# all time format
 datetime_re = re.compile(
     r'(?P<year>\d{4})[-/](?P<month>\d{1,2})[-/](?P<day>\d{1,2})'
     r'([T ](?P<hour>\d{1,2}):(?P<minute>\d{1,2})'
@@ -56,59 +53,65 @@ datetime_re = re.compile(
 )
 
 
-def init(**kwargs):
+def to_string(value=None, format_str=None, default_now=False):
     """
-    初始化日期默认参数
-    :param {string} format_str: 日期格式化的格式字符串(默认为: %Y-%m-%d %H:%M:%S)
+    change a time to str
+    :param {time|datetime.datetime|datetime.date|int|long|float|string} value: original time
+    :param {string} format_str: the return format of time. (default format: %Y-%m-%d %H:%M:%S)
+    :param {bool} default_now: True: when value is None return now, False: when value is None return None.
+    :return {string}: the string time
     """
-    global CONFIG
-    CONFIG.update(kwargs)
-
-
-def to_string(value=None, format_str=None):
-    """
-    将日期格式化成字符串
-    :param {time|datetime.datetime|datetime.date|int|long|float} value: 原时间(为空则默认为当前时间；纯数值则认为是时间戳,单位:秒)
-    :param {string} format_str: 期望返回结果的格式字符串(默认为: %Y-%m-%d %H:%M:%S)
-    :return {string}: 格式化后的时间字符串
-    """
-    if format_str is None:
-        global CONFIG
-        format_str = CONFIG.get('format_str')
+    this_format = format_str
+    if this_format is None:
+        this_format = DEFAULT_FORMAT
 
     if value in (None, ''):
+        if default_now is False:
+            return None
         value = datetime.datetime.now()
-        return value.strftime(format_str)
-    # datetime, datetime.date
-    elif isinstance(value, (datetime.datetime, datetime.date)):
-        return value.strftime(format_str)
+        return value.strftime(this_format)
+    # datetime
+    elif isinstance(value, datetime.datetime):
+        return value.strftime(this_format)
+    # datetime.date
+    elif isinstance(value, datetime.date):
+        if format_str is None:
+            this_format = DEFAULT_DATE_FORMAT
+        return value.strftime(this_format)
     # time
     elif isinstance(value, time.struct_time):
-        return time.strftime(format_str, value)
-    # 字符串类型, 先类型转换
+        return time.strftime(this_format, value)
+    # string, change type first
     elif isinstance(value, basestring):
         value = _str_2_datetime(value)
-        return value.strftime(format_str)
-    # 纯数值类型, 先类型转换
+        return value.strftime(this_format)
+    # number, treated as a timestamp
     elif isinstance(value, (int, long, float)):
         value = _number_2_datetime(value)
-        return value.strftime(format_str)
-    # datetime.timedelta 类型,先类型转换
+        return value.strftime(this_format)
+    # datetime.timedelta, change type first
     elif isinstance(value, datetime.timedelta):
         value = _timedelta_2_datetime(value)
-        return value.strftime(format_str)
-    # 其它类型,无法格式化
+        return value.strftime(this_format)
+    # datetime.time
+    elif isinstance(value, datetime.time):
+        if format_str is None:
+            this_format = DEFAULT_TIME_FORMAT
+        return value.strftime(this_format)
     return None
 
 
-def to_time(value=None, format_str=None):
+def to_time(value=None, default_now=False, from_format=None):
     """
-    将时间转成 time 类型
-    :param {time|datetime.datetime|datetime.date|int|long|float|string} value: 原时间(为空则默认为当前时间；纯数值则认为是时间戳,单位:秒)
-    :param {string} format_str: 当原时间是字符串类型时，原时间对应的格式字符串(默认为: %Y-%m-%d %H:%M:%S)
-    :return {time.struct_time}: 对应的时间
+    change other type of time to type(time)
+    :param {time|datetime.datetime|datetime.date|int|long|float|string} value: time of other type
+    :param {bool} default_now: True: when value is None return now, False: when value is None return None.
+    :param {string} from_format: when input value is str, use this format to get time(default format: %Y-%m-%d %H:%M:%S)
+    :return {time.struct_time}: the type(time) of time
     """
     if value in (None, ''):
+        if default_now is False:
+            return None
         return time.localtime()
     # datetime, datetime.date
     elif isinstance(value, (datetime.datetime, datetime.date)):
@@ -116,98 +119,102 @@ def to_time(value=None, format_str=None):
     # time
     elif isinstance(value, time.struct_time):
         return value
-    # 字符串类型, 先类型转换
+    # string, change type first
     elif isinstance(value, basestring):
-        value = _str_2_datetime(value, format_str=format_str)
+        value = _str_2_datetime(value, from_format=from_format)
         return value.timetuple()
-    # 纯数值类型,认为是时间戳
+    # number, treated as a timestamp
     elif isinstance(value, (int, long, float)):
         return time.localtime(value)
-    # datetime.timedelta 类型,先类型转换
+    # datetime.timedelta, change type first
     elif isinstance(value, datetime.timedelta):
         value = _timedelta_2_datetime(value)
         return value.timetuple()
-    # 其它类型,无法格式化
     return None
 
 
-def to_datetime(value=None, format_str=None):
+def to_datetime(value=None, default_now=False, from_format=None):
     """
-    将时间转成 datetime.datetime 类型
-        注: 由 time 转 datetime 类型时,只能精确到秒,无法精确到毫秒级别
-    :param {time|datetime.datetime|datetime.date|int|long|float|string} value: 原时间(为空则默认为当前时间；纯数值则认为是时间戳,单位:秒)
-    :param {string} format_str: 当原时间是字符串类型时，原时间对应的格式字符串(默认为: %Y-%m-%d %H:%M:%S)
-    :return {datetime.datetime}: 对应的时间
+    change other type of time to type(datetime.datetime)
+    note: from type(time) to type(datetime.datetime), can not keep microsecond
+    :param {time|datetime.datetime|datetime.date|int|long|float|string} value: time of other type
+    :param {bool} default_now: True: when value is None return now, False: when value is None return None.
+    :param {string} from_format: when input value is str, use this format to get time(default format: %Y-%m-%d %H:%M:%S)
+    :return {datetime.datetime}: the type(datetime.datetime) of time
     """
     if value in (None, ''):
+        if default_now is False:
+            return None
         return datetime.datetime.now()
     # datetime
     elif isinstance(value, datetime.datetime):
         return value
-    # datetime.date (与 datetime.datetime 类型不同,它不能添加时分秒)
+    # datetime.date (different from datetime.datetime, it has not hour, minute and second)
     elif isinstance(value, datetime.date):
         return datetime.datetime(value.year, value.month, value.day)
-        #return datetime.datetime.combine(value, datetime.datetime.min.time())
+        # return datetime.datetime.combine(value, datetime.datetime.min.time())
     # time
     elif isinstance(value, time.struct_time):
-        return datetime.datetime(*value[:6]) # 只能精确到秒,无法精确到毫秒级别
-        #value = time.mktime(value) # 先转成时间戳,交给下面专门处理时间戳的(实际上也是无法精确到毫秒)
-    # 字符串
+        return datetime.datetime(*value[:6])
+    # string
     elif isinstance(value, basestring):
-        return _str_2_datetime(value, format_str=format_str)
-    # 纯数值类型,认为是时间戳(要注意此处的时间不能早于1970-01-01 00:00)
+        return _str_2_datetime(value, from_format=from_format)
+    # number, treated as a timestamp
     elif isinstance(value, (int, long, float)):
         return _number_2_datetime(value)
-    # datetime.timedelta 类型,先类型转换
+    # datetime.timedelta, change type first
     elif isinstance(value, datetime.timedelta):
         return _timedelta_2_datetime(value)
-    # 其它类型,无法格式化
     return None
 
 
-def to_date(value=None, format_str=None):
+def to_date(value=None, default_now=False, from_format=None):
     """
-    将时间转成 datetime.date 类型
-    :param {time|datetime.datetime|datetime.date|int|long|float|string} value: 原时间(为空则默认为当前时间；纯数值则认为是时间戳,单位:秒)
-    :param {string} format_str: 当原时间是字符串类型时，原时间对应的格式字符串(默认为: %Y-%m-%d %H:%M:%S)
-    :return {datetime.date}: 对应的日期
+    change other type of time to type(datetime.date)
+    :param {time|datetime.datetime|datetime.date|int|long|float|string} value: time of other type
+    :param {bool} default_now: True: when value is None return now, False: when value is None return None.
+    :param {string} from_format: when input value is str, use this format to get time(default format: %Y-%m-%d %H:%M:%S)
+    :return {datetime.date}: the type(datetime.date) of time
     """
     if value in (None, ''):
+        if default_now is False:
+            return None
         return datetime.date.today()
     # datetime
     elif isinstance(value, datetime.datetime):
-        #return datetime.date(value.year, value.month, value.day)
+        # return datetime.date(value.year, value.month, value.day)
         return value.date()
-    # datetime.date类型，需要注意: isinstance(datetime.datetime(), datetime.date) 是返回 True 的
+    # datetime.date, note: isinstance(datetime.datetime(), datetime.date) is True
     elif isinstance(value, datetime.date):
         return value
     # time
     elif isinstance(value, time.struct_time):
-        return datetime.date(*value[:3]) # 只能精确到秒,无法精确到毫秒级别
-    # 字符串 类型,先类型转换
+        return datetime.date(*value[:3])
+    # string, change type first
     elif isinstance(value, basestring):
-        value = _str_2_datetime(value, format_str=format_str)
+        value = _str_2_datetime(value, from_format=from_format)
         return value.date()
-    # 纯数值类型,认为是时间戳
+    # number, treated as a timestamp
     elif isinstance(value, (int, long, float)):
         return datetime.date.fromtimestamp(value)
-    # datetime.timedelta 类型,先类型转换
+    # datetime.timedelta, change type first
     elif isinstance(value, datetime.timedelta):
         value = _timedelta_2_datetime(value)
         return value.date()
-    # 其它类型,无法格式化
     return None
 
 
-def to_timestamp(value=None, format_str=None):
+def to_timestamp(value=None, from_format=None, default_now=False):
     """
-    将时间转成时间戳(单位:秒)
-        注: 只能精确到秒,无法精确到毫秒级别
-    :param {time|datetime.datetime|datetime.date|int|long|float|string} value: 原时间(为空则默认为当前时间；纯数值则认为是时间戳,单位:秒)
-    :param {string} format_str: 当原时间是字符串类型时，原时间对应的格式字符串(默认为: %Y-%m-%d %H:%M:%S)
-    :return {float}: 对应的时间戳(单位:秒)
+    change time to timestamp(unit: second)
+    :param {time|datetime.datetime|datetime.date|int|long|float|string} value: original time
+    :param {bool} default_now: True: when value is None return now, False: when value is None return None.
+    :param {string} from_format: when input value is str, use this format to get time(default format: %Y-%m-%d %H:%M:%S)
+    :return {float}: timestamp(unit: second)
     """
     if value in (None, ''):
+        if default_now is False:
+            return None
         return time.time()
     # datetime, datetime.date
     elif isinstance(value, (datetime.datetime, datetime.date)):
@@ -215,55 +222,50 @@ def to_timestamp(value=None, format_str=None):
     # time
     elif isinstance(value, time.struct_time):
         return time.mktime(value)
-    # 字符串
+    # str
     elif isinstance(value, basestring):
-        value = _str_2_datetime(value, format_str=format_str)
+        value = _str_2_datetime(value, from_format=from_format)
         return time.mktime(value.timetuple())
-    # 纯数值类型,认为是时间戳
+    # number, treated as a timestamp
     elif isinstance(value, (int, long, float)):
         return value
     # datetime.timedelta
     elif isinstance(value, datetime.timedelta):
         return value.days * 24 * 60 * 60 + value.seconds + (value.microseconds / 1000000.0)
-    # 其它类型,无法格式化
     return None
 
 
-def _str_2_datetime(value, format_str=None):
+def _str_2_datetime(value, from_format=None):
     """
     字符串转成时间
     :param {string} value: 原时间
-    :param {string} format_str: 原时间对应的格式字符串(默认为: %Y-%m-%d %H:%M:%S)
+    :param {string} from_format: 原时间对应的格式字符串(默认为: %Y-%m-%d %H:%M:%S)
     :return {datetime.datetime}: 对应的时间
     """
-    # 指定格式
-    if format_str:
-        return datetime.datetime.strptime(value, format_str)
+    if from_format:
+        return datetime.datetime.strptime(value, from_format)
 
-    # 通用匹配格式
     match = datetime_re.match(value)
     if match:
         kw = match.groupdict()
         if kw['microsecond']:
             kw['microsecond'] = kw['microsecond'].ljust(6, '0')
-        kw.pop('tzinfo') # utc 暂时不支持这定义
+        kw.pop('tzinfo')  # utc not support
         kw = dict([(k, int(v)) for k, v in kw.items() if v is not None])
         return datetime.datetime(**kw)
 
-    # 含中文，或者特殊格式，只能尽量尝试匹配
-    global CONFIG
-    # 上下午处理
+    # try to fix Chinese
+    global FORMAT_LIST
     if '上午' in value: value = value.replace('上午', 'AM')
     if u'上午' in value: value = value.replace(u'上午', 'AM')
     if '下午' in value: value = value.replace('下午', 'PM')
     if u'下午' in value: value = value.replace(u'下午', 'PM')
-    for format in CONFIG.get('format_list'):
+    for format in FORMAT_LIST:
         try:
             return datetime.datetime.strptime(value, format)
         except:
             pass
 
-    # 无法格式化
     raise ValueError("time data %r does not match time format" % value)
 
 
@@ -320,7 +322,6 @@ def to_datetime_time(value):
         minute = (seconds % 3600) // 60
         second = seconds % 60
         return datetime.time(hour, minute, second)
-    # 其它类型,无法支持
     return None
 
 
@@ -332,19 +333,20 @@ def datetime_time_to_str(value, format_str='%H:%M:%S'):
     :return {string}: 时间字符串
     """
     value = to_datetime_time(value)
-    if value is None: return None # 无法支持的类型
+    if value is None:
+        return None
     return value.strftime(format_str)
 
 
-def is_dst(value=None, format_str=None):
+def is_dst(value=None, from_format=None):
     """
     判断传入时间是否夏令时
     :param {time|datetime.datetime|datetime.date|int|long|float|string} value: 需判断的时间(为空则默认为当前时间；纯数值则认为是时间戳,单位:秒)
-    :param {string} format_str: 日期格式化的格式字符串(默认为: %Y-%m-%d %H:%M:%S)
+    :param {string} from_format: 日期格式化的格式字符串(默认为: %Y-%m-%d %H:%M:%S)
     :return {bool}: 是否夏令时
     """
-    timestamp = to_timestamp(value=value, format_str=format_str)
-    return bool(time.localtime(timestamp).tm_isdst)
+    _time = to_time(value=value, from_format=from_format)
+    return bool(_time.tm_isdst) if _time is not None else False
 
 
 def add(original_time=None, years=0, months=0, days=0, hours=0, minutes=0, seconds=0, number=1):
@@ -362,7 +364,8 @@ def add(original_time=None, years=0, months=0, days=0, hours=0, minutes=0, secon
     """
     after_time = to_datetime(original_time)
     if after_time is None:
-        raise RuntimeError("时间参数无法解析:%s" % original_time)
+        logging.debug("时间参数无法解析:%s" % original_time)
+        return None
 
     # 添加倍数
     if number != 1:
@@ -384,11 +387,11 @@ def add(original_time=None, years=0, months=0, days=0, hours=0, minutes=0, secon
     if not (years or months):
         return after_time
     # 年、月的添加,系统没有自带函数,只能另外计算
-    original_months_count = after_time.year * 12 + after_time.month - 1 # 原日期共经历了多少个月
-    after_months_count = original_months_count + months # 添加后日期，共经历了多少个月
-    after_year = int(after_months_count / 12 + years) # 添加后的年份
-    after_month = int(after_months_count % 12 + 1) # 添加后的月份
-    after_day = min(after_time.day, calendar.monthrange(after_year, after_month)[1]) # 添加后的日期
+    original_months_count = after_time.year * 12 + after_time.month - 1  # 原日期共经历了多少个月
+    after_months_count = original_months_count + months  # 添加后日期，共经历了多少个月
+    after_year = int(after_months_count / 12 + years)  # 添加后的年份
+    after_month = int(after_months_count % 12 + 1)  # 添加后的月份
+    after_day = min(after_time.day, calendar.monthrange(after_year, after_month)[1])  # 添加后的日期
     # 最终时间
     return after_time.replace(year=after_year, month=after_month, day=after_day)
 
@@ -417,17 +420,18 @@ def sub(time1=None, time2=None, abs=False):
     # 参数转成 datetime 类型
     time1 = to_datetime(time1)
     time2 = to_datetime(time2)
-    if time1 is None or time2 is None:
-        raise RuntimeError("时间参数无法解析, time1:%s, time2:%s" % (time1, time2))
     # 返回值
-    res = {'years' : 0, 'months' : 0, 'days' : 0, 'hours' : 0, 'minutes' : 0, 'seconds' : 0,'sum_days':0, 'sum_seconds':0}
+    res = {'years': 0, 'months': 0, 'days': 0, 'hours': 0, 'minutes': 0, 'seconds': 0, 'sum_days': 0, 'sum_seconds': 0}
+    if time1 is None or time2 is None:
+        logging.debug("时间参数无法解析, time1:%s, time2:%s" % (time1, time2))
+        return res
     # 如果两时间相等,没必要再判断了
     if time1 == time2:
         return res
-    plus = time1 > time2 # 正数标识, 正数时为 True
+    plus = time1 > time2  # 正数标识, 正数时为 True
     _time1 = time1 if plus else time2
     _time2 = time2 if plus else time1
-    timedelta = time1 - time2 if plus else time2 - time1 # 时间差
+    timedelta = time1 - time2 if plus else time2 - time1  # 时间差
     # sum_days、sum_seconds 的差值计算
     sum_days = res['sum_days'] = timedelta.days
     sum_seconds = res['sum_seconds'] = timedelta.seconds + sum_days * 24 * 60 * 60
@@ -436,11 +440,11 @@ def sub(time1=None, time2=None, abs=False):
     res['minutes'] = (sum_seconds % 3600) // 60
     res['hours'] = (sum_seconds % (24 * 60 * 60)) // 3600
     # 年、月、日 的差值计算
-    months_count1 = _time1.year * 12 + _time1.month - 1 # 日期1共经历了多少个月
-    months_count2 = _time2.year * 12 + _time2.month - 1 # 日期2共经历了多少个月
+    months_count1 = _time1.year * 12 + _time1.month - 1  # 日期1共经历了多少个月
+    months_count2 = _time2.year * 12 + _time2.month - 1  # 日期2共经历了多少个月
     months_count = months_count1 - months_count2
     days = res['days'] = _time1.day - _time2.day
-    if days < 0 and months_count>0:
+    if days < 0 and months_count > 0:
         res['days'] += calendar.monthrange(_time2.year, _time2.month)[1]
         months_count -= 1
     res['years'] = months_count // 12
@@ -551,16 +555,18 @@ def get_datetime(datetime_date, datetime_time):
     return result.replace(hour=datetime_time.hour, minute=datetime_time.minute, second=datetime_time.second)
 
 
-def get_week_range(date=None):
+def get_week_range(date):
     """
     获取指定日期所在的星期的开始日期及结束日期
     :param {time|datetime|int|long|float|string} date: 原时间(为空则默认为当前时间；纯数值则认为是时间戳,单位:秒)
     :return {tuple<datetime.date, datetime.date>}: 对应的星期的开始日期及结束日期
     """
+    if date in ("", None):
+        return None, None
     date = to_datetime(date)
     this_weekday = date.weekday()
-    start_date = add(date, days=-this_weekday) if this_weekday > 0 else date # 星期一
-    end_date = add(date, days=6-this_weekday) if this_weekday < 6 else date # 星期天
+    start_date = add(date, days=-this_weekday) if this_weekday > 0 else date  # 星期一
+    end_date = add(date, days=6 - this_weekday) if this_weekday < 6 else date  # 星期天
     return to_date(start_date), to_date(end_date)
 
 

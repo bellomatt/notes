@@ -183,7 +183,7 @@ def _handler(url, param=None, method='GET', **kwargs):
             logger.error(u"%s [yellow]返回不正确的值[/yellow]: url:%s, param:%s, files:%s, 返回:%s", method, url, param, files, res,
                 extra={'color':True, 'method':method, 'url':url, 'param':param, 'result':res, 'files':files}
             )
-    except Exception, e:
+    except Exception as e:
         logger.error(u"%s [red]接口返回内容错误[/red]: url:%s, param:%s, 返回:%s", method, url, param, res, exc_info=True,
             extra={'color':True, 'Exception':e, 'method':method, 'url':url, 'param':param, 'result':res}
         )
@@ -262,7 +262,7 @@ def _deal(url, param=None, method='GET', **kwargs):
                 extra={'method':method, 'url':url, 'param':param, 'result':text, 'use_time':use_time}
             )
         return res
-    except Exception, e:
+    except Exception as e:
         if not use_time:
             use_time = time.time() - start_time
         logger.error(u"%s 用时:%.4f秒, [red]请求错误:%s[/red]: url:%s, param:%s, 返回:%s", method, use_time, e, url, param, res, exc_info=True,

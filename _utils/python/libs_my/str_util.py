@@ -17,6 +17,7 @@ import logging
 import time, datetime
 import gzip, zlib
 from hashlib import md5
+
 try:
     import StringIO
 except:
@@ -28,9 +29,9 @@ if PY3:
     basestring = unicode = str
     long = int
 
-__all__=('to_unicode', 'to_str', 'deep_str', 'to_human', 'to_json', 'json2str', 'mod',
-         'gzip_encode', 'gzip_decode', 'zlib_encode', 'zlib_decode',
-         "MD5", 'is_MD5', 'is_mobile', "is_email", 'is_credentials_no', 'create_random', 'number_format')
+__all__ = ('to_unicode', 'to_str', 'deep_str', 'to_human', 'to_json', 'json2str', 'mod',
+           'gzip_encode', 'gzip_decode', 'zlib_encode', 'zlib_decode',
+           "MD5", 'is_MD5', 'is_mobile', "is_email", 'is_credentials_no', 'create_random', 'number_format')
 
 
 def to_unicode(value, **kwargs):
@@ -50,7 +51,7 @@ def to_unicode(value, **kwargs):
                 if not encoding or not isinstance(encoding, basestring): continue
                 try:
                     value = value.decode(encoding)
-                    break # 如果上面这句执行没报异常，说明是这种编码
+                    break  # 如果上面这句执行没报异常，说明是这种编码
                 except:
                     pass
         # 上面已经转码成 Unicode 的
@@ -63,7 +64,7 @@ def to_unicode(value, **kwargs):
                     value = eval(u'u"""%s"""' % value)
                 else:
                     value = json.dumps(value, ensure_ascii=False)
-                    value = value.replace(r"\\u", r"\u") # json.dumps 会转换“\”,使得“\u65f6”变成“\\u65f6”
+                    value = value.replace(r"\\u", r"\u")  # json.dumps 会转换“\”,使得“\u65f6”变成“\\u65f6”
                     value = eval(u'u%s' % value)
             except Exception as e:
                 logging.error(u'将字符串转成可阅读编码出错:%s, 字符串:%s', e, value)
@@ -115,7 +116,7 @@ def deep_str(value, all2str='time', **kwargs):
     elif isinstance(value, basestring):
         return str_deal(value, **kwargs)
     # 考虑是否需要转成字符串的类型
-    elif isinstance(value, (bool,int,long,float,complex)):
+    elif isinstance(value, (bool, int, long, float, complex)):
         return str(value) if all2str == True else value
     # time, datetime 类型转成字符串,需要写格式(不能使用 json.dumps,会报错)
     elif isinstance(value, time.struct_time):
@@ -129,7 +130,7 @@ def deep_str(value, all2str='time', **kwargs):
     elif isinstance(value, uuid.UUID):
         return value.hex if all2str in (True, 'time') else value
     # list,tuple,set 类型,递归转换
-    elif isinstance(value, (list,tuple,set)):
+    elif isinstance(value, (list, tuple, set)):
         arr = [deep_str(item, all2str=all2str, **kwargs) for item in value]
         # 尽量不改变原类型
         if isinstance(value, list):  return arr
@@ -137,8 +138,8 @@ def deep_str(value, all2str='time', **kwargs):
         if isinstance(value, set):   return set(arr)
     # dict 类型,递归转换(字典里面的 key 也会转成 unicode 编码)
     elif isinstance(value, dict):
-        this_value = {} # 不能改变原参数
-        for key1,value1 in value.iteritems():
+        this_value = {}  # 不能改变原参数
+        for key1, value1 in value.items():
             # 字典里面的 key 也转成 unicode 编码
             key1 = deep_str(key1, all2str=all2str, **kwargs)
             this_value[key1] = deep_str(value1, all2str=all2str, **kwargs)
@@ -149,7 +150,7 @@ def deep_str(value, all2str='time', **kwargs):
         return str_deal(value) if all2str == True else value
 
 
-def to_human(value, isJson = False, **kwargs):
+def to_human(value, isJson=False, **kwargs):
     """
     将 字符串/其他值 按便于人阅读的形式展示
         类似于 repr 函数,但同时会将 “\u65f6”,“\xE5\x8C\x85”等字符转为人可以阅读的文字
@@ -166,7 +167,7 @@ def to_human(value, isJson = False, **kwargs):
         if isJson or (value.startswith('{') and value.endswith('}')) or (value.startswith('[') and value.endswith(']')):
             value = to_json(value)
     # list,tuple,set,dict 类型,按 json 格式美化一下输出
-    if isinstance(value, (list,tuple,set, dict)):
+    if isinstance(value, (list, tuple, set, dict)):
         value = deep_str(value, to_read=True, **kwargs)
         return json.dumps(value, indent=2, ensure_ascii=False)
     # 其它类型,可以部分地交给 to_unicode 处理
@@ -184,7 +185,7 @@ def to_json(value, **kwargs):
         try:
             value = json.loads(value)
         except Exception as e:
-            #logging.warn(u'将字符串json反序列化出错,下面将转eval处理:%s, 参数:%s', e, value, exc_info=True)
+            # logging.warn(u'将字符串json反序列化出错,下面将转eval处理:%s, 参数:%s', e, value, exc_info=True)
             try:
                 # 兼容 json 格式的 true 和 false
                 true = True
@@ -208,7 +209,7 @@ def json2str(value, **kwargs):
     :return {string}: 返回转换后的字符串
     """
     try:
-        value = deep_str(value, **kwargs) # 兼容 GBK、big5 编码的中文字符
+        value = deep_str(value, **kwargs)  # 兼容 GBK、big5 编码的中文字符
         value = json.dumps(value)
     except Exception as e:
         raise_error = kwargs.get('raise_error', True)
@@ -330,7 +331,7 @@ def is_MD5(data, **kwargs):
     """
     if not isinstance(data, basestring):
         return False
-    #if len(data) == 32 and re.match("^[0-9a-f]+$", data): # 为了提高效率，避免使用正则
+    # if len(data) == 32 and re.match("^[0-9a-f]+$", data): # 为了提高效率，避免使用正则
     if len(data) == 32 and len([x for x in data if x in '0123456789abcdef']) == 32:
         return True
     return False
@@ -350,7 +351,7 @@ def is_mobile(phone, **kwargs):
             return False
     if not phone.isdigit() or len(phone) != 11:
         return False
-    #if re.match("^1[3-9]\d{9}$", phone): # 为了提高效率，避免使用正则
+    # if re.match("^1[3-9]\d{9}$", phone): # 为了提高效率，避免使用正则
     if phone[0] == '1' and int(phone[1]) >= 3:
         return True
     return False
@@ -367,7 +368,7 @@ def is_email(email, **kwargs):
     if len(email) <= 7:
         return False
     # 为了提高效率，避免使用正则
-    #if re.match("^([a-zA-Z\\d_\\.-]+)@([a-zA-Z\\d\\-]+\\.)+[a-zA-Z\\d]{2,6}$", email):
+    # if re.match("^([a-zA-Z\\d_\\.-]+)@([a-zA-Z\\d\\-]+\\.)+[a-zA-Z\\d]{2,6}$", email):
     #    return True
     # 没有@符号,或者@符号在开头、结尾,或者有多个@符号,则返回False
     es = email.split('@')
