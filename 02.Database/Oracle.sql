@@ -308,3 +308,41 @@ ORACLE 分页查询 SQL 语法
           FROM partdata
          WHERE rowno >= 11;
  
+
+oracle 自增主键
+    -- 建表 (主键不会自动自增)
+    CREATE TABLE t_test_table(
+        user_id int PRIMARY KEY NOT NULL, -- 主键
+        playlist_id NUMBER(10) default 0 NOT NULL,
+        value NUMBER(10, 2) default 4 NOT NULL,
+        circle_code VARCHAR2(8) default '-' NOT NULL,
+        status VARCHAR2(10) default 'active' CHECK( status IN ('active','inactive') ),
+        last_use_time DATE DEFAULT sysdate NOT NULL,
+        update_date DATE default sysdate NOT NULL
+    );
+    -- 自增主键 = SEQUENCE + 触发器
+
+    -- 建 sequence
+    create sequence s_test_table increment by 1 start with 1 nomaxvalue nocycle cache 20;
+
+    -- 建 触发器
+    CREATE OR REPLACE TRIGGER TRIGGER_test_table_ID
+     BEFORE INSERT ON t_test_table
+     FOR EACH ROW --对表的每一行触发器执行一次
+     DECLARE NEXT_ID NUMBER;
+    BEGIN
+     SELECT s_test_table.NEXTVAL INTO NEXT_ID FROM DUAL;
+     :NEW.user_id := NEXT_ID; --:NEW表示新插入的那条记录
+    END;
+
+    -- 插入数据
+    insert into t_test_table(value,circle_code) VALUES (55.32, 'aaaa');
+    insert into t_test_table(value,circle_code) VALUES (22.1, 'bbb');
+    -- 看看效果
+    SELECT * from t_test_table;
+
+    -- 删除测试表及SEQUENCE、触发器
+    drop trigger TRIGGER_test_table_ID;
+    drop SEQUENCE s_test_table;
+    drop table t_test_table;
+
