@@ -223,7 +223,7 @@ mongoengine 提供对 MongoDB 的 ORM 操作
 
     # 下面这两句效果完全一样
     People.objects.filter(sex='male').update_one(set__age=10)
-    People.objects.filter(sex='male').update_one(age=10)
+    People.objects.filter(sex='male').update(age=10)
 
     # age 值被设成 null，这里写的 10 并不起任何作用
     People.objects.filter(sex='male').update_one(unset__age=10)

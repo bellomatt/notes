@@ -412,7 +412,7 @@
 
         $ git clone git@192.168.1.202:/var/git.server/project1
         Initialized empty Git repository in /home/yuhen/project1/.git/
-        git@192.168.1.202's password:
+        git@192.168.1.202''s password:
         remote: Counting objects: 4, done.
         remote: Compressing objects: 100% (2/2), done.
         remote: Total 4 (delta 0), reused 0 (delta 0)
@@ -436,10 +436,10 @@
       在将代码提交(push)到服务器之前, 首先要确认相关更新已经合并(merge)到 master 了, 还应该先从服务器刷新(pull)最新代码, 以确保自己的提交不会和别人最新提交的代码冲突。
 
         $ git pull origin master  # 先 pull
-        git@192.168.1.202's password:
+        git@192.168.1.202''s password:
 
         $ git push origin master  # 再 push
-        git@192.168.1.202's password:
+        git@192.168.1.202''s password:
 
 
       我们应该避免频繁向服务器提交代码, 而是在一个相对稳定的版本测试通过后再进行。
@@ -554,5 +554,29 @@
        3.OpenSSH格式的公钥生成后，最好复制一份保存好，后面也有保存公钥的按钮，但是保存的不是OpenSSH格式。
        4.密码可以不输入
        5.默认是保存成立ppk结尾的格式，这也是TortoiseGit软件所需要的格式文件。将文件里面的内容复制到github上的setting->SSH keys
+
+
+八、同步主分支到 github 上 fork 出来的分支
+	github fork一个分之后，过一段时间就会和主分支的差异比较大。
+	这样提交pr的时候就会冲突，这个时候我们就需要和主分支同步代码。
+
+	步骤：
+		1. git remote add upstream git@github.com:coreos/etcd.git
+		# 本地添加远程主分支，叫upstream。可以先 git remote -v 查看是否已添加远程分支，若已添加，该步骤略过。
+
+		2. git fetch upstream  # 获取主分支的最新修改到本地；
+		   # git remote update upstream
+		   # git rebase upstream/master
+
+		3. git merge upstream/master  # 将 upstream 分支修改内容 merge 到本地个人分支；
+			# 该步骤或者可以分成2步：
+			1) git checkout master；  # checkout 到 master 分支
+			2) git merge upstream；   # 合并主分支修改到本地master分支；
+
+		4. git push  # 将本地修改提交到github上的个人分支
+
+	至此，主分支修改的代码完全同步到fork出来的个人分支上，后续在个人分支上修改提交pr时就不会冲突。
+
+
 
 
