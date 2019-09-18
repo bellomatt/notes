@@ -100,11 +100,305 @@ if 语句在行内
 False == True
     比起实用技术来说这是一个很有趣的事，在python中, True 和 False 是全局变量(值允许改变)，因此：
 
-    False = True
+    False = True  # 仅py2可行，py3这行报错
     if False:
        print "Hello"
     else:
        print "World"
     # 打印: Hello
+
+
+换行符分割技巧
+
+    s = "a\r\nb\n"
+    print(s.split('\n'))  # ['a\r', 'b', '']
+    print(s.splitlines())  # ['a', 'b']
+
+
+嵌套上下文管理器
+    当我们要写一个嵌套的上下文管理器时，可能会这样写
+
+    import contextlib
+
+    @contextlib.contextmanager
+    def test_context(name):
+        print('enter, my name is {}'.format(name))
+
+        yield
+
+        print('exit, my name is {}'.format(name))
+
+    with test_context('aaa'):
+        with test_context('bbb'):
+            print('========== in main ============')
+
+    输出结果如下
+    enter, my name is aaa
+    enter, my name is bbb
+    ========== in main ============
+    exit, my name is bbb
+    exit, my name is aaa
+
+
+    除此之外，你或许不知道，它还有另一种更加简洁的写法
+    with test_context('aaa'), test_context('bbb'):
+        print('========== in main ============')
+
+
++= 并不等同于 =+
+    对列表 进行 += 操作相当于 extend, 而使用 =+ 操作是新增了一个列表。
+    因此会有如下两者的差异。
+
+    # =+
+    >>> a = [1, 2, 3, 4]
+    >>> b = a
+    >>> a = a + [5, 6, 7, 8]
+    >>> # a[:] = a + [5, 6, 7, 8]  # 改成这句，则 a 和 b 的值同时改变，可以用 id(b) 查看引用的变化
+    >>> a
+    [1, 2, 3, 4, 5, 6, 7, 8]
+    >>> b
+    [1, 2, 3, 4]
+
+    # += 
+    >>> a = [1, 2, 3, 4]
+    >>> b = a
+    >>> a += [5, 6, 7, 8]
+    >>> a
+    [1, 2, 3, 4, 5, 6, 7, 8]
+    >>> b
+    [1, 2, 3, 4, 5, 6, 7, 8]
+
+
+Python 也可以有 end
+    有不少编程语言，循环、判断代码块需要用 end 标明结束（比如 Shell），这样一定程序上会使代码逻辑更加清晰一点，
+    其实这种语法在 Python 里并没有必要，但如果你想用，也不是没有办法，具体你看下面这个例子。
+
+    __builtins__.end = None
+
+    def m(x):
+        if x >= 0:
+            return x
+        else:
+            return -x
+        end
+    end
+
+    print(m(5))  # 打印：5
+    print(m(-5)) # 打印：5
+
+    # 其实只是加了一个全局变量 end, 且这个变量的值指定为 None，但没法强制要求函数写end
+
+
+省略号 ...
+    ... 这是省略号，在Python中，一切皆对象。它也不例外。
+    在 Python 中，它叫做 Ellipsis 。
+    在 Python 3 中你可以直接写 ... 来得到这玩意。
+    >>> ...
+    Ellipsis
+    >>> type(...)
+    <class 'ellipsis'>
+
+
+    而在 py2 中没有 ... 这个语法，只能直接写Ellipsis来获取。
+    >>> Ellipsis
+    Ellipsis
+    >>> type(Ellipsis)
+    <type 'ellipsis'>
+
+
+    它转为布尔值时为真,且不可以赋值
+    >>> bool(...)
+    True
+
+    最后，这东西是一个单例。
+    >>> id(...)
+    4362672336
+    >>> id(...)
+    4362672336
+
+    这东西有啥用呢？据说它是 Numpy 的语法糖，不玩 Numpy 的人，可以说是没啥用的。
+    在网上只看到这个 用 ... 代替 pass ，稍微有点用，但又不是必须使用的。
+
+    try:
+        1/0
+    except ZeroDivisionError:
+        ...
+
+
+修改解释器提示符
+    这个当做今天的一个小彩蛋吧。应该算是比较冷门的，估计知道的人很少了吧。
+    正常情况下，我们在 终端下 执行Python 命令是这样的。
+
+    >>> for i in range(2):
+    ...     print (i)
+    ...
+    0
+    1
+
+    你是否想过 >>> 和 ... 这两个提示符也是可以修改的呢？
+
+    >>> import sys
+    >>> sys.ps1
+    '>>> '
+    >>> sys.ps2
+    '... '
+    >>>
+    >>> sys.ps2 = '---------------- '
+    >>> sys.ps1 = 'Python编程时光>>>'
+    Python编程时光>>>for i in range(2):
+    ----------------    print (i)
+    ----------------
+    0
+    1
+
+    注：只在终端的情况下可以，如果是文件里面，则会报错: AttributeError: 'module' object has no attribute 'ps1'
+
+
+for 死循环
+    用 while 写死循环很容易，但用 for 可就不容易了。那 for 该怎么写死循环呢？
+    while 的写法：  while True: pass
+
+    某网友的 for 写法：
+    for i in iter(int, 1):pass 
+
+    是不是懵逼了。 iter 还有这种用法？这为啥是个死循环？
+    这真的是个冷知识，关于这个知识点，你如果看中文网站，可能找不到相关资料。
+    还好你可以通过 IDE 看py源码里的注释内容，介绍了很详细的使用方法。
+
+    def iter(source, sentinel=None): # known special case of iter
+        """
+        iter(iterable) -> iterator
+        iter(callable, sentinel) -> iterator
+
+        Get an iterator from an object.  In the first form, the argument must
+        supply its own iterator, or be a sequence.
+        In the second form, the callable is called until it returns the sentinel.
+        """
+        pass
+
+    原来 iter 有两种使用方法，通常我们的认知是第一种，将一个列表转化为一个迭代器。
+    而第二种方法，他接收一个 callable 对象，和一个 sentinel 参数。第一个对象会一直运行，直到它返回 sentinel 值才结束。
+
+    那 int 呢，这又是一个知识点， int 是一个内建方法。通过看注释，可以看出它是有默认值 0 的。你可以在终端上输入 int() 看看是不是返回 0 。
+
+    class int(object):
+
+        def __init__(self, x, base=10): # known special case of int.__init__
+            """
+            int(x=0) -> integer
+            int(x, base=10) -> integer
+
+            Convert a number or string to an integer, or return 0 if no arguments
+            are given.  If x is a number, return x.__int__().  For floating point
+            numbers, this truncates towards zero.
+
+            If x is not a number or if base is given, then x must be a string,
+            bytes, or bytearray instance representing an integer literal in the
+            given base.  The literal can be preceded by '+' or '-' and be surrounded
+            by whitespace.  The base defaults to 10.  Valid bases are 0 and 2-36.
+            Base 0 means to interpret the base from the string as an integer literal.
+            >>> int('0b100', base=0)
+            4
+            """
+            pass
+
+
+字符串的 intern 机制
+    >>> a = "Hello_Python"
+    >>> id(a)
+    32045616
+    >>> id("Hello" + "_" + "Python")  # 拼接后的结果跟 a 一样，引用也使用了相同的，说明字符串有池概念，从池中取值，减少生成新值。
+    32045616
+    >>> id(''.join(["Hello", "_", "Python"]))  # join 的结果相同，却不再是同一个引用了
+    38764272
+    >>> b = "Hello"
+    >>> id(b + "_" + "Python")  # py2 时跟 join 的同一个，而跟 a 的不一样。但 py3 时却是全新一个。文件时2/3都跟 join 一样。
+    38764272
+    >>> c = "Python"
+    >>> id("Hello" + "_" + c)
+    38764272
+    >>> id(b + "_" + c)
+    38764272
+    >>> id("Hello" + "_" + "Python")  # 再次拼接，再次使用之前的引用。可见，是否公用一个引用池，也是有不同机制的。
+    32045616
+
+    >>> a = "MING"
+    >>> b = "MING"
+    >>> a is b
+    True
+
+    >>> a, b = "MING!", "MING!"
+    >>> a is b
+    True
+
+    >>> 'a' * 20 is 'aaaaaaaaaaaaaaaaaaaa'
+    True
+    >>> 'a' * 21 is 'aaaaaaaaaaaaaaaaaaaaa'  # 说明字符串池的长度有限，超过20不再使用池。
+    False
+
+    '''
+    Python字符串的intern机制规定：
+    当两个或以上的字符串变量它们的值相同且仅由数字字母下划线构成而且长度在20个字符以内，或者值仅含有一个字符时，内存空间中只创建一个对象来让这些变量都指向该内存地址。
+    当字符串不满足该条件时，相同值的字符串变量在创建时都会申请一个新的内存地址来保存值。
+    注：终端的intern机制跟文件的不一样，且 py2 与 py3 也有所不同。
+    '''
+
+
+小整数对象池
+    Python字符串有intern机制的限制，同样的，整形数也有大小整数对象池的限制。
+    Python语言在设计之初为了减少频繁申请和销毁内存的资源开销，规定了[-5, 256]之间的整数全部常驻在内存中且不会被垃圾回收只能增减引用计数，这就是小整数对象池，池外的数在创建时每次都得申请新的内存空间而不是增加引用计数。
+
+    例子如下：
+    >>> a = 256
+    >>> b = 256
+    >>> a is b
+    True
+    >>> print(id(a), id(b))
+    1953505712 1953505712
+
+    >>> a = 257
+    >>> b = 257
+    >>> a is b
+    False
+    >>> print(id(a), id(b))  # 终端超过 256 的不再缓存到池中
+    2037325924592 2037325924368
+
+
+大整数对象池
+    在交互式终端环境中，每次创建大型数时都是去申请新的内存空间。
+    但是在编写Python文件时每次运行都把代码加载到内存中，整个项目代码都属于一个整体。
+    这时就是大型整数对象池发挥作用的时候了，它把处于相同代码块的所有等值的大型整数变量都处理为一个对象。
+
+    例子如下：
+    class A(object):
+        a = 100
+        b = 100
+        c = 1000
+        d = 1000
+
+    class B(object):
+        a = 100
+        b = 1000
+
+    print(A.a is A.b)  # True
+    print(A.a is B.a)  # True
+    print(A.c is A.d)  # True  重点是这一个
+    print(A.c is B.b)  # False 不同一个类，分配了不同的空间，这也得理解
+
+
+引用扩展
+    扩展点Python内存管理方面的姿势吧。
+
+    >>> id([1,2,3]) == id([4,5,6])
+    True
+    >>> a = [1,2,3]
+    >>> b = [4,5,6]
+    >>> print(id(a), id(b))
+    2037326252488 2037326229256
+
+    有人问为什么id([1,2,3]) == id([4,5,6])，这是因为Python会实时销毁没有引用计数的对象。
+    一旦在内存中创建了一个对象但是没有为其添加引用计数，该段代码执行完后就会回收地址，在这个例子中计算完[1,2,3]的id后list被销毁，计算右边的id时list实时创建，复用了左边list用过的内存。
+    但是生成的时间有先后，他们并不代表同一个对象。
+
 
 
