@@ -6,8 +6,8 @@
 
     x, y = y, x
 
-    print x # 打印:5
-    print y # 打印:6
+    print(x)  # 打印:5
+    print(y)  # 打印:6
 
 
 
@@ -17,8 +17,8 @@ if 语句在行内
     a = "Hello" if True else "World"
     b = "Hello" if False else "World"
 
-    print a # 打印:Hello
-    print b # 打印:World
+    print(a)  # 打印:Hello
+    print(b)  # 打印:World
 
 
 连接
@@ -28,10 +28,10 @@ if 语句在行内
     print nfc + afc  # 打印:['Packers', '49ers', 'Ravens', 'Patriots']
 
     # 字符串 拼接
-    print str(1) + " world" # 打印:1 world
+    print(str(1) + " world") # 打印:1 world
 
     # 数值的这种写法，我还不清楚是什么, 会当成字符串处理，却又不是真正的字符串
-    print `1` + " world" # 打印:1 world
+    print(`1` + " world") # 打印:1 world
 
 
     # python2.x 的 print 可以这样打印多个不同类型的内容
@@ -49,7 +49,7 @@ if 语句在行内
 
     teams = ["Packers", "49ers", "Ravens", "Patriots"]
     for index, team in enumerate(teams):
-        print index, team  # 打印如:0 Packers
+        print(index, team)  # 打印如:0 Packers
 
 序列 的乘法
     items = [0]*3
@@ -73,10 +73,10 @@ if 语句在行内
 
     x = 2
     if 3 > x > 1:
-       print x # 打印:2
+        print(x)  # 打印:2
 
     if 1 < x > 0:
-       print x # 打印:2
+        print(x)  # 打印:2
 
 
 同时迭代两个列表
@@ -84,7 +84,7 @@ if 语句在行内
     nfc = ["Packers", "49ers"]
     afc = ["Ravens", "Patriots"]
     for teama, teamb in zip(nfc, afc):
-         print teama + " vs. " + teamb
+         print(teama + " vs. " + teamb)
     # 打印1: Packers vs. Ravens
     # 打印2: 49ers vs. Patriots
 
@@ -94,7 +94,7 @@ if 语句在行内
     写一个程序，打印数字1到100，3的倍数打印“Fizz”来替换这个数，5的倍数打印“Buzz”，对于既是3的倍数又是5的倍数的数字打印“FizzBuzz”。
 
     这里就是一个简短的，有意思的方法解决这个问题：
-    for x in range(1,101):print"fizz"[x%3*4:]+"buzz"[x%5*4:]or x
+    for x in range(1,101):print("Fizz"[x%3*4:]+"Buzz"[x%5*4:] or x)
 
 
 False == True
@@ -102,9 +102,9 @@ False == True
 
     False = True  # 仅py2可行，py3这行报错
     if False:
-       print "Hello"
+        print("Hello")
     else:
-       print "World"
+        print("World")
     # 打印: Hello
 
 
@@ -303,102 +303,6 @@ for 死循环
             pass
 
 
-字符串的 intern 机制
-    >>> a = "Hello_Python"
-    >>> id(a)
-    32045616
-    >>> id("Hello" + "_" + "Python")  # 拼接后的结果跟 a 一样，引用也使用了相同的，说明字符串有池概念，从池中取值，减少生成新值。
-    32045616
-    >>> id(''.join(["Hello", "_", "Python"]))  # join 的结果相同，却不再是同一个引用了
-    38764272
-    >>> b = "Hello"
-    >>> id(b + "_" + "Python")  # py2 时跟 join 的同一个，而跟 a 的不一样。但 py3 时却是全新一个。文件时2/3都跟 join 一样。
-    38764272
-    >>> c = "Python"
-    >>> id("Hello" + "_" + c)
-    38764272
-    >>> id(b + "_" + c)
-    38764272
-    >>> id("Hello" + "_" + "Python")  # 再次拼接，再次使用之前的引用。可见，是否公用一个引用池，也是有不同机制的。
-    32045616
-
-    >>> a = "MING"
-    >>> b = "MING"
-    >>> a is b
-    True
-
-    >>> a, b = "MING!", "MING!"
-    >>> a is b
-    True
-
-    >>> 'a' * 20 is 'aaaaaaaaaaaaaaaaaaaa'
-    True
-    >>> 'a' * 21 is 'aaaaaaaaaaaaaaaaaaaaa'  # 说明字符串池的长度有限，超过20不再使用池。
-    False
-
-    '''
-    Python字符串的intern机制规定：
-    当两个或以上的字符串变量它们的值相同且仅由数字字母下划线构成而且长度在20个字符以内，或者值仅含有一个字符时，内存空间中只创建一个对象来让这些变量都指向该内存地址。
-    当字符串不满足该条件时，相同值的字符串变量在创建时都会申请一个新的内存地址来保存值。
-    注：终端的intern机制跟文件的不一样，且 py2 与 py3 也有所不同。
-    '''
-
-
-小整数对象池
-    Python字符串有intern机制的限制，同样的，整形数也有大小整数对象池的限制。
-    Python语言在设计之初为了减少频繁申请和销毁内存的资源开销，规定了[-5, 256]之间的整数全部常驻在内存中且不会被垃圾回收只能增减引用计数，这就是小整数对象池，池外的数在创建时每次都得申请新的内存空间而不是增加引用计数。
-
-    例子如下：
-    >>> a = 256
-    >>> b = 256
-    >>> a is b
-    True
-    >>> print(id(a), id(b))
-    1953505712 1953505712
-
-    >>> a = 257
-    >>> b = 257
-    >>> a is b
-    False
-    >>> print(id(a), id(b))  # 终端超过 256 的不再缓存到池中
-    2037325924592 2037325924368
-
-
-大整数对象池
-    在交互式终端环境中，每次创建大型数时都是去申请新的内存空间。
-    但是在编写Python文件时每次运行都把代码加载到内存中，整个项目代码都属于一个整体。
-    这时就是大型整数对象池发挥作用的时候了，它把处于相同代码块的所有等值的大型整数变量都处理为一个对象。
-
-    例子如下：
-    class A(object):
-        a = 100
-        b = 100
-        c = 1000
-        d = 1000
-
-    class B(object):
-        a = 100
-        b = 1000
-
-    print(A.a is A.b)  # True
-    print(A.a is B.a)  # True
-    print(A.c is A.d)  # True  重点是这一个
-    print(A.c is B.b)  # False 不同一个类，分配了不同的空间，这也得理解
-
-
-引用扩展
-    扩展点Python内存管理方面的姿势吧。
-
-    >>> id([1,2,3]) == id([4,5,6])
-    True
-    >>> a = [1,2,3]
-    >>> b = [4,5,6]
-    >>> print(id(a), id(b))
-    2037326252488 2037326229256
-
-    有人问为什么id([1,2,3]) == id([4,5,6])，这是因为Python会实时销毁没有引用计数的对象。
-    一旦在内存中创建了一个对象但是没有为其添加引用计数，该段代码执行完后就会回收地址，在这个例子中计算完[1,2,3]的id后list被销毁，计算右边的id时list实时创建，复用了左边list用过的内存。
-    但是生成的时间有先后，他们并不代表同一个对象。
 
 
 
