@@ -2,16 +2,18 @@
 利用 Python 搭建一个简单的 Web 服务器,快速实现局域网内文件共享。
     1. cd 到准备做服务器根目录的路径下(这目录下的文件将会被共享)
     2. 运行命令：
-       python -m Web服务器模块[端口号，默认8000]
-       这里的“Web服务器模块”有如下三种：
+        python -m Web服务器模块[端口号，默认8000]
+        这里的“Web服务器模块”有如下三种：
             BaseHTTPServer: 提供基本的Web服务和处理器类，分别是 HTTPServer 和 BaseHTTPRequestHandler 。
             SimpleHTTPServer: 包含执行GET和HEAD请求的 SimpleHTTPRequestHandler 类。
+            SimpleHTTPServer 是Python 2自带的一个模块，是Python的Web服务器。它在Python 3已经合并到 http.server 模块中。
             CGIHTTPServer: 包含处理 POST 请求和执行 CGIHTTPRequestHandler 类。
 
-       运行如: python -m SimpleHTTPServer 8080
+        py2 运行如: python -m SimpleHTTPServer 8080
+        py3 运行如: python3 -m http.server 8888
 
     3. 可以在浏览器中访问:
-       http://$HOSTNAME:端口号/路径
+        http://$HOSTNAME:端口号/路径
 
 
 

@@ -82,9 +82,11 @@ self 参数
         def __unicode__(self):return 'unicode:%s' % self.a
 
     a = A()
-    print str(a) # 先 __str__, 再找 __repr__, 没有就用 object 默认的
-    print unicode(a) # 先 __unicode__, 再找 __str__, 再找 __repr__, 没有就用 object 默认的
-    print repr(a) # 先 __repr__, 没有就用 object 默认的
+    print(a) # 先 __str__, 再找 __repr__, 没有就用 object 默认的
+    >>> a  # 终端交互时，则只找 __repr__, 没有就用 object 默认的
+    print(str(a)) # 先 __str__, 再找 __repr__, 没有就用 object 默认的
+    print(unicode(a)) # 先 __unicode__, 再找 __str__, 再找 __repr__, 没有就用 object 默认的
+    print(repr(a)) # 先 __repr__, 没有就用 object 默认的
 
 
 

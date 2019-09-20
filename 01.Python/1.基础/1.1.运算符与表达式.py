@@ -130,7 +130,7 @@ is 用于判断两个引用所指的对象是否相同
 
         a = "very good morning" *10
         b = "very good morning" *10
-        print(a is b) # False (短字符串会缓存，长的就不会了，具体长度未知)
+        print(a is b) # False (短字符串会缓存，长的就不会了，具体长度20)
 
         a = []
         b = []

@@ -46,13 +46,27 @@ Python 是静态作用域语言, 尽管它自身是一个动态语言。也就�
        在 Python2 列表内部没有引入新的作用域,但 python3 却会引入新作用域,如:
 
         [a for a in range(3)]
-        print(a) # 在 python2 下运行时打印 2, 而在 python3 下运行时抛异常: NameError: name 'a' is not defined
+        print(a) # 在 py2 下运行时打印 2, 而在 py3 下运行时抛异常: NameError: name 'a' is not defined
+
+        x = 1
+        [x for x in range(5)]
+        print(x)  # py2 时打印: 4, py3 时打印: 1
+
+        x = 1
+        for x in range(5):
+            pass
+        print(x)  # 不管 Py2 还是 Py3, 都打印: 4, 可见py3仅对推导的内部作用域优化过。
+
 
     2.元组(tuple)
        不管 Python2 还是 Python3,元组内部都会引入新的作用域,如:
 
         (a for a in range(3))
-        print(a) # 不管 Python2 还是 Python3, 运行都会抛异常: NameError: name 'a' is not defined
+        print(a) # 不管 Py2 还是 Py3, 运行都会抛异常: NameError: name 'a' is not defined
+
+        x = 1
+        b = (x for x in range(5))
+        print(x)  # 不管 Py2 还是 Py3, 都打印: 1
 
 
 global 和 nonlocal 关键字

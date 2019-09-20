@@ -321,6 +321,16 @@ f-Strings：一种改进Python格式字符串的新方法
     print s.index('on') # 打印: 4
     import string; print string.find(s, 't') # 打印: 2
 
+    空字符串计数
+    求一个字符串里，某子字符(串)出现的次数。在Python中使用 count() 函数，就可以轻松实现。
+    print("aabb".count("a")) # 打印: 2
+    print("aabb".count("b")) # 打印: 2
+    print("aabb".count("ab")) # 打印: 1
+    print("aabb".count("")) # 打印: 5    难道字母与字母之间 “缝隙” 也算吗？
+    # 我还衍生出下面的实验
+    print("" in "") # 打印: True
+    print("" in "ab") # 打印: True
+
 
   5.字符串替换相关
     替换old为new: str.replace('old','new')
