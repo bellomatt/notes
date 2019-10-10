@@ -376,6 +376,10 @@ mongo 是 MongoDB 自带的交互式 Javascript shell，用来对 Mongod 进行�
     { "_id" : ObjectId("4c47b3372a9b2be866da2277"), "name" : "user9", "age" : 9 }
     */
 
+    // 两个字段比较，且两个字段都是 Date/ISODate 时间类型， 下面是取出 1000 条 synced_at字段比 received_at字段 晚一天的数据
+    db.message.find({$where:"this.synced_at != null && this.received_at != null && this.synced_at.getTime() > this.received_at.getTime() + 24*60*60*1000"}).sort({'synced_at':-1}).limit(1000);
+
+
   (11) 多表关联查询
     db.shops.insert({_id:3,name:'name3',t:2})
     db.shops.insert({_id:5,name:'name5',t:2})

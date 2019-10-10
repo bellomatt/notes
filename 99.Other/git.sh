@@ -68,6 +68,7 @@
         $ git checkout -b <本地分支名称> origin/<远程分支名称>  # 创建并切换到远程分支
         $ git fetch origin <远程分支名称>:<本地分支名称>  # 在本地新建分支x，但是不会自动切换到该本地分支x，需要手动checkout
         $ git checkout HEAD^ -- <filename>  # 恢复某文件
+        $ git checkout <filename> # 恢复某文件到线上最新版本
 
         $ git stash # 临时挂起，不提交而拉取新代码
         $ git stash apply # 恢复未提交前的编辑状态
@@ -75,7 +76,7 @@
         $ git merge <name>  # 将 新分支名 的工作分支合并到当前分支
         $ git cherry-pick abce00c8 # 只合并某个提交(其它提交的内容不合并,需要先checkout到被合并的分支上，后面一个参数是提交编码的前8位)
 
-        $ git reset HEAD^ # 恢复到上次某个提交状态, 可以是 HEAD^、HEAD~4、commit-id 的头几个字母, 还可以是 tag
+        $ git reset HEAD^ <file> # 恢复到上次某个提交状态, 可以是 HEAD^、HEAD~4、commit-id 的头几个字母, 还可以是 tag
         $ git reset --hard 17ccc1b2(版本id) # 回退到某版本
         $ git tag 标签值  # 创建简单标签
         $ git tag  # 显示所有标签
@@ -557,25 +558,25 @@
 
 
 八、同步主分支到 github 上 fork 出来的分支
-	github fork一个分之后，过一段时间就会和主分支的差异比较大。
-	这样提交pr的时候就会冲突，这个时候我们就需要和主分支同步代码。
+    github fork一个分之后，过一段时间就会和主分支的差异比较大。
+    这样提交pr的时候就会冲突，这个时候我们就需要和主分支同步代码。
 
-	步骤：
-		1. git remote add upstream git@github.com:coreos/etcd.git
-		# 本地添加远程主分支，叫upstream。可以先 git remote -v 查看是否已添加远程分支，若已添加，该步骤略过。
+    步骤：
+        1. git remote add upstream git@github.com:coreos/etcd.git
+        # 本地添加远程主分支，叫upstream。可以先 git remote -v 查看是否已添加远程分支，若已添加，该步骤略过。
 
-		2. git fetch upstream  # 获取主分支的最新修改到本地；
-		   # git remote update upstream
-		   # git rebase upstream/master
+        2. git fetch upstream  # 获取主分支的最新修改到本地；
+           # git remote update upstream
+           # git rebase upstream/master
 
-		3. git merge upstream/master  # 将 upstream 分支修改内容 merge 到本地个人分支；
-			# 该步骤或者可以分成2步：
-			1) git checkout master；  # checkout 到 master 分支
-			2) git merge upstream；   # 合并主分支修改到本地master分支；
+        3. git merge upstream/master  # 将 upstream 分支修改内容 merge 到本地个人分支；
+            # 该步骤或者可以分成2步：
+            1) git checkout master；  # checkout 到 master 分支
+            2) git merge upstream；   # 合并主分支修改到本地master分支；
 
-		4. git push  # 将本地修改提交到github上的个人分支
+        4. git push  # 将本地修改提交到github上的个人分支
 
-	至此，主分支修改的代码完全同步到fork出来的个人分支上，后续在个人分支上修改提交pr时就不会冲突。
+    至此，主分支修改的代码完全同步到fork出来的个人分支上，后续在个人分支上修改提交pr时就不会冲突。
 
 
 
