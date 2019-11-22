@@ -35,10 +35,13 @@ mongo 是 MongoDB 自带的交互式 Javascript shell，用来对 Mongod 进行�
     show users    // 查看所有用户(显示跟上面类似)
     db.auth('admin', 'pwd')    // 用户认证(设置数据库连接验证)
     db.removeUser('mongodb')    // 删除用户
+    // 添加权限
+	db.system.users.update({"_id" : "admin.admin"}, {"$push":{"roles":{"role" : "dbOwner", "db" : "bello_nlp"}}})
+	db.grantRolesToUser("abc", [{role:"readWrite",db:"test"}])
 
   2. 插入
     db.集合名.save({'键1' : 值1, '键2' : 值2}) // 插入数据(可以更新，也可以插入数据),返回新增的主键值
-    db.集合名.insert({'键1' : 值1, '键2' : 值2}) // 插入数据(insert into),返回新增的主键值
+    db.test.insert({'键1' : 1, '键2' : 2}) // 插入数据(insert into),返回新增的主键值
 
   3. 更新
     // 更新指定一条记录

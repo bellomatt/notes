@@ -3,9 +3,14 @@ pymongo 提供原生的 MongoDB 操作
 
 一、MongoDB 数据库操作
   1. 连接数据库
-    import pymongo
-    conn = pymongo.Connection() # 连接本机数据库
+    # import pymongo
+    # conn = pymongo.Connection() # 连接本机数据库
     # conn = pymongo.Connection(host="192.168.1.202") # 连接指定IP的数据库
+	# 以上是旧版本连接方式
+	from pymongo import MongoClient
+	conn = MongoClient(host='192.168.2.12', port=3456, username='webapp', password='pwd123')
+	conn = MongoClient('mongodb://user11:pwd123@192.168.2.12:10255/db?ssl=true&authSource=admin')
+
     db = conn.test # 进入指定名称的数据库
     users = db.users # 获取数据库里的 users 集合
     users = db['users'] # 获取数据库里的 users 集合,也可以用字典来获取
@@ -96,6 +101,9 @@ pymongo 提供原生的 MongoDB 操作
   5.7 统计总数(COUNT)
     print(db.users.count())  # select count(*) from users
     print(db.users.find({"age":{"$gt":30}}).count()) # select count(*) from users where age > 30
+    # distinct 去重
+    db.getCollection('表名').distinct('字段名').length;  # 查询重复行数,没有 length 则是重复行,但总大小不能超过 16M
+    db.表名.aggregate([{$group: {_id: {"phone": "$phone"}}}]).count()
 
   5.8 OR
     for u in db.users.find({"$or":[{"age":25}, {"age":28}]}): print u  # select * from 集合名 where 键1 = 值1 or 键1 = 值2

@@ -217,10 +217,9 @@ _get_host_net_list = set([
     "https://www.ip.cn/",
     "https://ip.911cha.com/",
     "http://api.k780.com/?app=ip.local&appkey=10003&sign=b59bc3ef6191eb9f747dd4e83c99f2a4&format=json",
-    # "http://ip.taobao.com/service/getIpInfo.php?ip=myip",
+    "http://ip.taobao.com/service/getIpInfo.php?ip=myip",
     # "http://ip.qq.com/cgi-bin/myip", # 腾讯阻止了程序直接访问此页面，故获取不到
-    "http://2019.ip138.com/ic.asp",
-    # "http://www.whereismyip.com/",
+    "http://ip138.com/",
 ])
 
 
