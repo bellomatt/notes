@@ -252,7 +252,7 @@ mongodump 备份
     --gzip 是否使用压缩
 
     实例:
-    mongodump --uri "mongodb://data_190403:E53pm73930d5QeQ@10.0.0.16:27017/spider?authSource=admin" --collection spider_resume_test --gzip --archive=spider_resume.archive
+    mongodump --uri "mongodb://user123:pwd123@127.0.0.1:27017/spider?authSource=admin" --collection spider_resume_test --gzip --archive=spider_resume.archive
 
 mongorestore 恢复
     语法: mongorestore -h <hostname><:port> -d dbname <path>
