@@ -250,22 +250,51 @@ mongodump 备份
     --collection <表名>
     --out / -o <out_directory>
     --gzip 是否使用压缩
+    --archive  导出为归档（Archive）文件。 用法:mongodump --archive=fileName
 
     实例:
-    mongodump --uri "mongodb://user123:pwd123@127.0.0.1:27017/spider?authSource=admin" --collection spider_resume_test --gzip --archive=spider_resume.archive
+    mongodump --uri "mongodb://user123:pwd123@127.0.0.1:27017/spider?authSource=admin" --collection spider_resume_test --gzip --archive=filename.gz
 
 mongorestore 恢复
     语法: mongorestore -h <hostname><:port> -d dbname <path>
     --host <:port>, -h <:port>：    MongoDB所在服务器地址，默认为： localhost:27017
     --db , -d ：    需要恢复的数据库实例，例如：test，当然这个名称也可以和备份时候的不一样，比如test2
     --drop：    恢复的时候，先删除当前数据，然后恢复备份的数据。就是说，恢复后，备份后添加修改的数据都会被删除，慎用哦！
-    <path>：    mongorestore 最后的一个参数，设置备份数据所在位置，例如：c:\data\dump\test。
+    --nsInclude ：指定还原的集合，支持通配符（*）
+    --nsExclude：指定不还原的集合，支持通配符（*）
+    --nsFrom：修改集合名称，原来集合的名称，支持使用变量
+    --nsTo：修改集合名称，修改之后集合的名称，支持使用变量
 
+    <path>：    mongorestore 最后的一个参数，设置备份数据所在位置，例如：c:\data\dump\test。
+    --dir：    指定备份的目录
     你不能同时指定 <path> 和 --dir 选项，--dir也可以设置备份目录。
 
-    --dir：    指定备份的目录
+    ### 还原指定数据库的指定集合 ###
+    mongorestore --collection collection --db database filePath  # 写法1
+    mongorestore --nsInclude database.collections filePath  # 写法2(推荐写法)
+    # 注：写法1的filePath是json、bson文件所在的目录，一般为"./dump/database"，写法2的filePath是数据库备份的根目录，一般为 "./dump"
 
-    你不能同时指定 <path> 和 --dir 选项。
+    ### 使用通配符 * 导入匹配的集合
+    # --nsInclude指定要 还原 的集合，--nsExclude指定 不还原 的集合
+    mongorestore --nsInclude database.* --nsExclude database.* filePath
+
+    ### 在还原过程中修改集合的名称(单集合)
+    mongorestore --nsInclude database.collection --nsFrom database.collectio --nsTo newCollectionName
+
+    ### 高级应用:使用模式匹配在备份过程中修改集合名称
+        假设现在有如下的集合，集合名称分别为
+        sales_customer1
+        sales_customer2
+        users_customer1
+        users_customer2
+    # 我们可以看到上面的集合名称都是有规律的，都是A_B这种模式的名称，A匹配sales，users,B匹配customer1,customer2,customer3，我们可以使用如下命令修改集合名称
+    # $$ 之间的值可以当成一个变量使用，可以看到下边的命令将A和B的位置调换了，注意这里的单引号不能省略
+    mongorestore --nsInclude 'database.*' --nsFrom 'data.$A$_$B$' --nsTo '$B$_$A$'
+        最终还原之后的，mongodb会把集合名称形如 A_B 的改为 B_A ，如下所示
+        customer1_sales
+        customer2_sales
+        customer1_users
+        customer2_users
 
 
 mongoexport 备份
