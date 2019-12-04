@@ -11,6 +11,7 @@ auth=true # 要求密码登录
 bind_ip_all=true  # 允许所有ip访问,跟 bind_ip 互斥
 wiredTigerCacheSizeGB=2  # 内存占用大小限制,单位 GB,默认是系统内存的一半
 failIndexKeyTooLong=false  # 取消索引长度限制,写配置文件不知道能不能生效
+profile=1  # 性能分析日志 0=off(不收集任何日志) 1=slow(收集慢查询日志), 2=all(收集所有日志)
 ## 注：上面的每行结尾不能包含空格，否则会被读取到配置值里面，这里仅作示例，实际环境中没有结尾空格及注释。
 
 
@@ -126,8 +127,8 @@ storage:
    #       inMemorySizeGB: <number>
  
 operationProfiling: # 性能分析
-   slowOpThresholdMs: 100 # 认定为查询速度缓慢的时间阈值，超过该时间的查询即为缓慢查询，会被记录到日志中, 默认100
-   mode: off # operationProfiling模式 off/slowOp/all 默认off
+   slowOpThresholdMs: 100 # 认定为查询速度缓慢的时间阈值，超过该时间的查询即为缓慢查询，会被记录到日志中, 默认100(毫秒)。仅当下面的 mode=slowOp 时生效。
+   mode: slowOp # operationProfiling模式: off(不收集任何日志) / slowOp(收集慢查询日志) /all(收集所有日志) 默认off。
 
 # replication: #复制集相关
 #    oplogSizeMB: <int>
