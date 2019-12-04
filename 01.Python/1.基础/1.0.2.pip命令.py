@@ -55,3 +55,25 @@ pip 修改源
         升级 pip 到最新的版本 (>=10.0.0) 后进行配置：
         pip install -i https://pypi.tuna.tsinghua.edu.cn/simple pip -U
         pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+
+
+动态导入包
+	import pip
+
+	def install(package):
+		if hasattr(pip, 'main'):
+			pip.main(['install', package])
+		else:
+			pip._internal.main(['install', package])
+
+	# Example
+	if __name__ == '__main__':
+		try:
+			import xxx
+			print('Yeah, the package is here, ready go')
+			# todo run main code
+		except ImportError:
+			print('oh no, it seems like you must install this package then you can use it')
+			install('xxx')
+			# todo run main code
+

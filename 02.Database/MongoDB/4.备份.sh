@@ -27,6 +27,8 @@ tar -zcvf $TAR_DIR/$TAR_BAK ./$DATE # 压缩为 .tar.gz 格式
 
 find $TAR_DIR/ -mtime +$DAYS -delete # 删除 $DAYS 天前的备份文件
 
+rm -rf $OUT_DIR/$DATE  # 删除已压缩的内容
+
 
 ### 后续操作 ###
 
