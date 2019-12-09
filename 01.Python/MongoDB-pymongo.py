@@ -1,15 +1,23 @@
 ﻿
 pymongo 提供原生的 MongoDB 操作
 
+术语对应：
+    database  --> database      数据库
+    table     --> collection    数据库表 / 集合
+    row       --> document      数据记录行 / 文档
+    column    --> field         数据字段 / 域
+    index     --> index         索引
+
+
 一、MongoDB 数据库操作
   1. 连接数据库
     # import pymongo
     # conn = pymongo.Connection() # 连接本机数据库
     # conn = pymongo.Connection(host="192.168.1.202") # 连接指定IP的数据库
-	# 以上是旧版本连接方式
-	from pymongo import MongoClient
-	conn = MongoClient(host='192.168.2.12', port=3456, username='webapp', password='pwd123')
-	conn = MongoClient('mongodb://user11:pwd123@192.168.2.12:10255/db?ssl=true&authSource=admin')
+    # 以上是旧版本连接方式
+    from pymongo import MongoClient
+    conn = MongoClient(host='192.168.2.12', port=3456, username='webapp', password='pwd123')
+    conn = MongoClient('mongodb://user11:pwd123@192.168.2.12:10255/db?ssl=true&authSource=admin')
 
     db = conn.test # 进入指定名称的数据库
     users = db.users # 获取数据库里的 users 集合
@@ -18,13 +26,21 @@ pymongo 提供原生的 MongoDB 操作
   2. 插入
     u = dict(name = "user1", age = 23)
     # db.users.save(u) # 用 save 也可以插入,返回新增的主键值
-    db.users.insert(u) # 将数据插入到 users 集合,返回新增的主键值
+    db.users.insert(u) # 将数据插入到 users 集合,返回新增的主键值(bson.objectid.ObjectId类型)
+
+    # insert_one()接收一个字典对象
+    db.collection.insert_one({'people_num': 147000000})  # 返回一个 pymongo.results.InsertOneResult object
+    insert_obj = db.collection.insert_one({'people_num': 147000000, 'city_num':16, 'location': "east"})
+    print(insert_obj.inserted_id)  # 这样可以获取新增的主键值(bson.objectid.ObjectId类型)
+    # insert_many()接收一个字典列表
+    insert_objs = db.collection.insert_many([{'people_num': 147000000}, {'city_num': 16}])  # 插入两行，返回一个 pymongo.results.InsertManyResult object
+    print(insert_objs.inserted_ids)  # 这样可以获取新增的主键列表(bson.objectid.ObjectId类型的列表)
 
   3. 更新
     # 更新指定一条记录
     u2 = db.users.find_one({"name":"user9"})
     u2['age'] += 3
-    db.users.save(u2)  # 返回更新的主键值
+    db.users.save(u2)  # 返回更新的主键值。 根据主键 _id 来更新,没有 _id 或者匹配不到则新增
 
     # 更新多条记录,返回 None
     db.users.update({"name":"user1"}, {"$set":{"age":100, "sex":0}}) # update users set age = 100, sex = 0 where name = 'user1'
@@ -35,68 +51,88 @@ pymongo 提供原生的 MongoDB 操作
     db.集合名.update(criteria, objNew, upsert, mult)
     criteria: 需要被更新的条件表达式
     objNew: 更新表达式
-    upsert: 如目标记录不存在，是否插入新文档。
-    multi: 是否更新多个文档。
+    upsert=False: 如目标记录不存在，是否插入新文档。 bool 类型参数。
+    manipulate=False:
+    multi=False: 是否更新多个文档。
+    check_keys=True:
+    返回值：dict类型，等于 pymongo.results.UpdateResult 的 raw_result： {'n': 1, 'nModified': 0, 'ok': 1.0, 'updatedExisting': True}， 里面 n 是匹配行数, nModified 是更新行数
+
+    # 更新一条数据
+    r = db.collection.update_one({'people_num': 147000000}, {"$set": {"num": "12345"}}, upsert=False)
+    # 第3个参数 upsert=False，如果设成 True 则当查询不到这条件时新增。
+    # 返回 pymongo.results.UpdateResult object
+    print(r.modified_count, r.matched_count, r.upserted_id, r.raw_result) # 这3个值分别是 更新行数、匹配行数、新增id(当upsert=True，且需要新增时返回)、结果集
+    # 更新多条数据
+    r = db.collection.update_many({'city_num': 100}, {"$set": {"num": 333}}, upsert=False)
+    print(r.modified_count, r.matched_count, r.upserted_id)
 
   4. 删除
-    db.users.drop()  # 删除集合
+    db.users.drop()  # 删除集合，返回None
 
     # remove() 用于删除单个或全部文档，删除后的文档无法恢复。
     id = db.users.find_one({"name":"user2"})["_id"]
     db.users.remove(id)  # 根据 id 删除一条记录
     db.users.remove()  # 删除集合里的所有记录
-    db.users.remove({'yy':5}) # 删除yy=5的记录
+    db.users.remove({'yy':5}) # 删除yy=5的记录，返回字典： {'n': 2, 'ok': 1.0}， n表示删除多少行，ok不知道是什么
+
+    # delete_one(), delete_many() 必须传入字典作为参数，返回 pymongo.results.DeleteResult object
+    db.collection.delete_one({'city_num': 16})  # 只删除一行
+    r = db.collection.delete_many({'city_num': 16})  # 删除多行
+    print(r.deleted_count)  # 返回删除了多少行
 
   5. 查询
     # 查询 age 小于 15 的
-    for u in db.users.find({"age":{"$lt":15}}): print u
+    for u in db.users.find({"age":{"$lt":15}}): print(u)
 
   5.1 查询一条记录
     # 查询 name 等于 user8 的
-    for u in db.users.find({"name":"user8"}): print u
+    for u in db.users.find({"name":"user8"}): print(u)
 
     # 获取查询的一个
-    u2 = db.users.find_one({"name":"user9"}) # 查不到时返回 None
-    print u2
+    print(db.users.find_one({"name":"user9"})) # 查不到时返回 None, 查询到则返回一条dict
+    print(db.users.find_one({"name":"user9", 'age':15})) # 多条件查询
 
   5.2 查询特定键 (fields)
     # select name, age from users where age = 21
-    for u in db.users.find({"age":21}, ["name", "age"]): print u
-    for u in db.users.find(fields = ["name", "age"]): print u
+    for u in db.users.find({"age":21}, ["name", "age"]): print(u)
+    # for u in db.users.find(fields = ["name", "age"]): print(u)  # 这写法已经不兼容
+
+    # 按规则输出数据项，为1的输出，为0的不输出
+    db.collection.find({"age":21}, {'_id': 0, 'city_num': 1})  # 含有city_num数据项的输出city_num,没有的输出空字典
 
   5.3 排序(SORT)
     pymongo.ASCENDING  # 也可以用 1 来代替
     pymongo.DESCENDING # 也可以用 -1 来代替
-    for u in db.users.find().sort([("age", pymongo.ASCENDING)]): print u   # select * from 集合名 order by 键1
-    for u in db.users.find().sort([("age", pymongo.DESCENDING)]): print u  # select * from 集合名 order by 键1 desc
-    for u in db.users.find().sort([("键1", pymongo.ASCENDING), ("键2", pymongo.DESCENDING)]): print u # select * from 集合名 order by 键1 asc, 键2 desc
-    for u in db.users.find(sort = [("键1", pymongo.ASCENDING), ("键2", pymongo.DESCENDING)]): print u # sort 的另一种写法
-    for u in db.users.find({"name":"user9"}, sort=[['name',1],['sex',1]], fields = ["name", "age", 'sex']): print u  # 组合写法
+    for u in db.users.find().sort([("age", pymongo.ASCENDING)]): print(u)   # select * from 集合名 order by 键1
+    for u in db.users.find().sort([("age", pymongo.DESCENDING)]): print(u)  # select * from 集合名 order by 键1 desc
+    for u in db.users.find().sort([("键1", pymongo.ASCENDING), ("键2", pymongo.DESCENDING)]): print(u) # select * from 集合名 order by 键1 asc, 键2 desc
+    for u in db.users.find(sort = [("键1", pymongo.ASCENDING), ("键2", pymongo.DESCENDING)]): print(u) # sort 的另一种写法
+    for u in db.users.find({"name":"user9"}, sort=[['name',1],['sex',1]], fields = ["name", "age", 'sex']): print(u)  # 组合写法
 
   5.4 从第几行开始读取(SLICE)，读取多少行(LIMIT)
     # select * from 集合名 skip 2 limit 3
     # MySQL 的写法： select * from 集合名 limit 2, 3
-    for u in db.users.find().skip(2).limit(3): print u
-    for u in db.users.find(skip = 2, limit = 3): print u
+    for u in db.users.find().skip(2).limit(3): print(u)
+    for u in db.users.find(skip = 2, limit = 3): print(u)
 
     # 可以用切片代替 skip & limit (mongo 中的 $slice 貌似有点问题)。
-    for u in db.users.find()[2:5]: print u
+    for u in db.users.find()[2:5]: print(u)
 
     # 单独的写
-    for u in db.users.find().skip(2): print u
-    for u in db.users.find(skip=1): print u
-    for u in db.users.find().limit(5): print u
-    for u in db.users.find(limit = 3): print u
+    for u in db.users.find().skip(2): print(u)
+    for u in db.users.find(skip=1): print(u)
+    for u in db.users.find().limit(5): print(u)
+    for u in db.users.find(limit = 3): print(u)
 
   5.5 多条件查询(Conditional Operators)    # like 的可使用正则表达式查询
     # select * from users where name = 'user3' and age > 12 and age < 15
-    for u in db.users.find({'age': {'$gt': 12, '$lt': 15}, 'name': 'user3'}): print u
+    for u in db.users.find({'age': {'$gt': 12, '$lt': 15}, 'name': 'user3'}): print(u)
     # select * from users where name = 'user1' and age = 21
-    for u in db.users.find({"age":21, "name":"user1"}): print u
+    for u in db.users.find({"age":21, "name":"user1"}): print(u)
 
   5.6 IN
-    for u in db.users.find({"age":{"$in":(23, 26, 32)}}): print u   # select * from users where age in (23, 26, 32)
-    for u in db.users.find({"age":{"$nin":(23, 26, 32)}}): print u  # select * from users where age not in (23, 26, 32)
+    for u in db.users.find({"age":{"$in":(23, 26, 32)}}): print(u)   # select * from users where age in (23, 26, 32)
+    for u in db.users.find({"age":{"$nin":(23, 26, 32)}}): print(u)  # select * from users where age not in (23, 26, 32)
 
   5.7 统计总数(COUNT)
     print(db.users.count())  # select count(*) from users
@@ -106,15 +142,15 @@ pymongo 提供原生的 MongoDB 操作
     db.表名.aggregate([{$group: {_id: {"phone": "$phone"}}}]).count()
 
   5.8 OR
-    for u in db.users.find({"$or":[{"age":25}, {"age":28}]}): print u  # select * from 集合名 where 键1 = 值1 or 键1 = 值2
-    for u in db.users.find({"$or":[{"age":{"$lte":23}}, {"age":{"$gte":33}}]}): print u  # select * from 集合名 where 键1 <= 值1 or 键1 >= 值2
+    for u in db.users.find({"$or":[{"age":25}, {"age":28}]}): print(u)  # select * from 集合名 where 键1 = 值1 or 键1 = 值2
+    for u in db.users.find({"$or":[{"age":{"$lte":23}}, {"age":{"$gte":33}}]}): print(u)  # select * from 集合名 where 键1 <= 值1 or 键1 >= 值2
 
   6. 是否存在 (exists)
     db.users.find({'sex':{'$exists':True}})  # select * from 集合名 where exists 键1
     db.users.find({'sex':{'$exists':False}}) # select * from 集合名 where not exists 键1
 
   7. 正则表达式查询
-    for u in db.users.find({"name" : {"$regex" : r"(?i)user[135]"}}, ["name"]): print u # 查询出 name 为 user1, user3, user5 的
+    for u in db.users.find({"name" : {"$regex" : r"(?i)user[135]"}}, ["name"]): print(u) # 查询出 name 为 user1, user3, user5 的
 
   8. 多级路径的元素值匹配
     Document 采取 JSON-like 这种层级结构，因此我们可以直接用嵌入(Embed)代替传统关系型数据库的关联引用(Reference)。
@@ -128,19 +164,19 @@ pymongo 提供原生的 MongoDB 操作
     u = db.集合名.find_one({"im.qq":12345678})
     # 查询结果如：{"_id" : ObjectId("4c479885089df9b53474170a"), "name" : "user1", "im" : {"msn" : "user1@hotmail.com", "qq" : 12345678}}
 
-    print u['im']['msn']  #显示： user1@hotmail.com
+    print(u['im']['msn'])  #显示： user1@hotmail.com
 
     # 多级路径的更新
     db.集合名.update({"im.qq":12345678}, {'$set':{"im.qq":12345}})
 
     # 查询包含特定键的
-    for u in db.users.find({"im.qq":{'$exists':True}}, {"im.qq":1}): print u
+    for u in db.users.find({"im.qq":{'$exists':True}}, {"im.qq":1}): print(u)
     # 显示如： { "_id" : ObjectId("4c479885089df9b53474170a"), "im" : { "qq" : 12345 } }
 
 
-    for u in db.users.find({'data':"abc"}): print u
+    for u in db.users.find({'data':"abc"}): print(u)
     # 显示如： { "_id" : ObjectId("4c47a481b48cde79c6780df5"), "name" : "user8", "data" : [ { "a" : 1, "b" : 10 }, 3, "abc" ] }
-    for u in db.users.find({'data':{'$elemMatch':{'a':1, 'b':{'$gt':5}}}}): print u
+    for u in db.users.find({'data':{'$elemMatch':{'a':1, 'b':{'$gt':5}}}}): print(u)
     # 显示如： { "_id" : ObjectId("4c47a481b48cde79c6780df5"), "name" : "user8", "data" : [ { "a" : 1, "b" : 10 }, 3, "abc" ] }
     {data:"abc"} 仅简单匹配数组属性是否包含该元素。$elemMatch 则可以处理更复杂的元素查找条件。当然也可以写成如下方式：
     db.集合名.find({"data.a":1, "data.b":{'$gt':5}})
@@ -166,23 +202,30 @@ pymongo 提供原生的 MongoDB 操作
     db.集合名.find({"classifyid":"test1", "keyword.0.name":"test2"})
 
 
-  操作符
+  查询符
     $lt         小于
     $lte        小于等于
     $gt         大于
     $gte        大于等于
     $ne         不等于
+    $eq         等于
     $in         in  检查目标属性值是条件表达式中的一员
     $nin        not in
-    $set        set(用于 update 语句)
-    $unset      与 $set 相反，表示移除文档属性。
-    $inc        += (用于 update 语句)
     $exists     exists (判断是否存在，仅有 True 和 False 两个值)
     $all        属性值包含全部条件元素,注意和 $in 的区别
     $size       匹配数组属性元素的数量
     $type       判断属性类型
     $regex      正则表达式查询
     $elemMatch  子属性里的查询
+    $and        用逻辑联接查询子句 AND 将返回两个子句都匹配的所有文档。
+    $not        反转查询表达式的效果，并返回与查询表达式不匹配的文档。
+    $nor        用逻辑联接查询子句 NOR 将返回两个子句均不匹配的所有文档。
+    $or         用逻辑联接查询子句 OR 将返回符合任一子句条件的所有文档。
+    $where      用 JS 代码来代替有些丑陋的 $lt、$gt
+  操作符
+    $set        set(用于 update 语句)
+    $unset      与 $set 相反，表示移除文档属性。
+    $inc        += (用于 update 语句)
     $push       向数组属性添加元素
     $pushAll    向数组属性添加元素
     $addToSet   和 $push 类似，不过仅在该元素不存在时才添加 (Set 表示不重复元素集合)
@@ -190,9 +233,6 @@ pymongo 提供原生的 MongoDB 操作
     $pop        移除数组属性的元素(按数组下标移除)
     $pull       按值移除
     $pullAll    移除所有符合提交的元素
-    $where      用 JS 代码来代替有些丑陋的 $lt、$gt
-
-
 
 
 二、Operator
@@ -200,17 +240,17 @@ pymongo 提供原生的 MongoDB 操作
     db.users.insert({'name':"user3", 'data':[1,2,3,4,5,6,7]})
     db.users.insert({'name':"user4", 'data':[1,2,3]})
 
-    for u in db.users.find({'data':{'$all':[2,3,4]}}): print u
+    for u in db.users.find({'data':{'$all':[2,3,4]}}): print(u)
     # 显示： { "_id" : ObjectId("4c47a133b48cde79c6780df0"), "name" : "user3", "data" : [ 1, 2, 3, 4, 5, 6, 7 ] }
     注意和 $in 的区别。$in 是检查目标属性值是条件表达式中的一员，而 $all 则要求属性值包含全部条件元素。
 
   (2) $size: 匹配数组属性元素数量。
-    for u in db.users.find({'data':{'$size':3}}): print u
+    for u in db.users.find({'data':{'$size':3}}): print(u)
     # 只显示匹配此数组数量的： { "_id" : ObjectId("4c47a13bb48cde79c6780df1"), "name" : "user4", "data" : [ 1, 2, 3 ] }
 
   (3) $type: 判断属性类型。
-    for u in db.users.find({'t':{'$type':1}}): print u  # 查询数字类型的
-    for u in db.users.find({'t':{'$type':2}}): print u  # 查询字符串类型的
+    for u in db.users.find({'t':{'$type':1}}): print(u)  # 查询数字类型的
+    for u in db.users.find({'t':{'$type':2}}): print(u)  # 查询字符串类型的
 
     类型值:
         double:1
@@ -237,81 +277,81 @@ pymongo 提供原生的 MongoDB 操作
     # 还不知如何使用
 
   (5) $unset: 和 $set 相反，表示移除文档属性。
-    for u in db.users.find({'name':"user1"}): print u
+    for u in db.users.find({'name':"user1"}): print(u)
     # 显示如： { "_id" : ObjectId("4c479885089df9b53474170a"), "name" : "user1", "age" : 15, "address" : [ "address1", "address2" ] }
 
     db.users.update({'name':"user1"}, {'$unset':{'address':1, 'age':1}})
-    for u in db.users.find({'name':"user1"}): print u
+    for u in db.users.find({'name':"user1"}): print(u)
     # 显示如： { "_id" : ObjectId("4c479885089df9b53474170a"), "name" : "user1" }
 
   (6) $push: 和 $ pushAll 都是向数组属性添加元素。# 好像两者没啥区别
-    for u in db.users.find({'name':"user1"}): print u
+    for u in db.users.find({'name':"user1"}): print(u)
     # 显示如： { "_id" : ObjectId("4c479885089df9b53474170a"), "age" : 15, "name" : "user1" }
 
     db.users.update({'name':"user1"}, {'$push':{'data':1}})
-    for u in db.users.find({'name':"user1"}): print u
+    for u in db.users.find({'name':"user1"}): print(u)
     # 显示如： { "_id" : ObjectId("4c479885089df9b53474170a"), "age" : 15, "data" : [ 1 ], "name" : "user1" }
 
     db.users.update({'name':"user1"}, {'$pushAll':{'data':[2,3,4,5]}})
-    for u in db.users.find({'name':"user1"}): print u
+    for u in db.users.find({'name':"user1"}): print(u)
     # 显示如： { "_id" : ObjectId("4c479885089df9b53474170a"), "age" : 15, "data" : [ 1, 2, 3, 4, 5 ], "name" : "user1" }
 
   (7) $addToSet: 和 $push 类似，不过仅在该元素不存在时才添加 (Set 表示不重复元素集合)。
     db.users.update({'name':"user2"}, {'$unset':{'data':1}})
     db.users.update({'name':"user2"}, {'$addToSet':{'data':1}})
     db.users.update({'name':"user2"}, {'$addToSet':{'data':1}})
-    for u in db.users.find({'name':"user2"}): print u
+    for u in db.users.find({'name':"user2"}): print(u)
     # 显示： { "_id" : ObjectId("4c479896089df9b53474170b"), "data" : [ 1 ], "name" : "user2" }
 
     db.users.update({'name':"user2"}, {'$push':{'data':1}})
-    for u in db.users.find({'name':"user2"}): print u
+    for u in db.users.find({'name':"user2"}): print(u)
     # 显示： { "_id" : ObjectId("4c479896089df9b53474170b"), "data" : [ 1, 1 ], "name" : "user2" }
 
     要添加多个元素，使用 $each。
     db.users.update({'name':"user2"}, {'$addToSet':{'data':{'$each':[1,2,3,4]}}})
-    for u in db.users.find({'name':"user2"}): print u
+    for u in db.users.find({'name':"user2"}): print(u)
     # 显示： {u'age': 12, u'_id': ObjectId('4c479896089df9b53474170b'), u'data': [1, 1, 2, 3, 4], u'name': u'user2'}
     # 貌似不会自动删除重复
 
   (8) $each 添加多个元素用。
     db.users.update({'name':"user2"}, {'$unset':{'data':1}})
     db.users.update({'name':"user2"}, {'$addToSet':{'data':1}})
-    for u in db.users.find({'name':"user2"}): print u
+    for u in db.users.find({'name':"user2"}): print(u)
     # 显示： { "_id" : ObjectId("4c479896089df9b53474170b"), "data" : [ 1 ], "name" : "user2" }
 
     db.users.update({'name':"user2"}, {'$addToSet':{'data':{'$each':[1,2,3,4]}}})
-    for u in db.users.find({'name':"user2"}): print u
+    for u in db.users.find({'name':"user2"}): print(u)
     # 显示： {u'age': 12, u'_id': ObjectId('4c479896089df9b53474170b'), u'data': [1, 2, 3, 4], u'name': u'user2'}
 
     db.users.update({'name':"user2"}, {'$addToSet':{'data':[1,2,3,4]}})
-    for u in db.users.find({'name':"user2"}): print u
+    for u in db.users.find({'name':"user2"}): print(u)
     # 显示： { "_id" : ObjectId("4c479896089df9b53474170b"), "data" : [ 1, 2, 3, 4, [ 1, 2, 3, 4 ] ], "name" : "user2" }
 
     db.users.update({'name':"user2"}, {'$unset':{'data':1}})
     db.users.update({'name':"user2"}, {'$addToSet':{'data':[1,2,3,4]}})
-    for u in db.users.find({'name':"user2"}): print u
+    for u in db.users.find({'name':"user2"}): print(u)
     # 显示： { "_id" : ObjectId("4c47a133b48cde79c6780df0"), "data" : [ [1, 2, 3, 4] ], "name" : "user2" }
 
   (9) $pop: 移除数组属性的元素(按数组下标移除)，$pull 按值移除，$pullAll 移除所有符合提交的元素。
     db.users.update({'name':"user2"}, {'$unset':{'data':1}})
     db.users.update({'name':"user2"}, {'$addToSet':{'data':{'$each':[1, 2, 3, 4, 5, 6, 7, 2, 3 ]}}})
-    for u in db.users.find({'name':"user2"}): print u
+    for u in db.users.find({'name':"user2"}): print(u)
     # 显示： { "_id" : ObjectId("4c47a133b48cde79c6780df0"), "data" : [ 1, 2, 3, 4, 5, 6, 7, 2, 3 ], "name" : "user2" }
 
     db.users.update({'name':"user2"}, {'$pop':{'data':1}}) # 移除最后一个元素
-    for u in db.users.find({'name':"user2"}): print u
+    for u in db.users.find({'name':"user2"}): print(u)
     # 显示： { "_id" : ObjectId("4c47a133b48cde79c6780df0"), "data" : [ 1, 2, 3, 4, 5, 6, 7, 2 ], "name" : "user2" }
 
     db.users.update({'name':"user2"}, {'$pop':{'data':-1}}) # 移除第一个元素
-    for u in db.users.find({'name':"user2"}): print u
+    for u in db.users.find({'name':"user2"}): print(u)
     # 显示： { "_id" : ObjectId("4c47a133b48cde79c6780df0"), "data" : [ 2, 3, 4, 5, 6, 7, 2 ], "name" : "user2" }
 
     db.users.update({'name':"user2"}, {'$pull':{'data':2}}) # 移除全部 2
-    for u in db.users.find({'name':"user2"}): print u
+    for u in db.users.find({'name':"user2"}): print(u)
     # 显示： { "_id" : ObjectId("4c47a133b48cde79c6780df0"), "data" : [ 3, 4, 5, 6, 7 ], "name" : "user2" }
 
     db.users.update({'name':"user2"}, {'$pullAll':{'data':[3,5,6]}}) # 移除 3,5,6
-    for u in db.users.find({'name':"user2"}): print u
+    for u in db.users.find({'name':"user2"}): print(u)
     # 显示： { "_id" : ObjectId("4c47a133b48cde79c6780df0"), "data" : [ 4, 7 ], "name" : "user2" }
 
   (10) $where: 用 JS 代码来代替有些丑陋的 $lt、$gt。
@@ -320,7 +360,7 @@ pymongo 提供原生的 MongoDB 操作
     db.users.remove() # 删除集合里的所有记录
     for i in range(10):
         db.users.insert({'name':"user" + str(i), 'age':i})
-    for u in db.users.find(): print u
+    for u in db.users.find(): print(u)
     # 显示如下：
     { "_id" : ObjectId("4c47b3372a9b2be866da226e"), "name" : "user0", "age" : 0 }
     { "_id" : ObjectId("4c47b3372a9b2be866da226f"), "name" : "user1", "age" : 1 }
@@ -333,7 +373,7 @@ pymongo 提供原生的 MongoDB 操作
     { "_id" : ObjectId("4c47b3372a9b2be866da2276"), "name" : "user8", "age" : 8 }
     { "_id" : ObjectId("4c47b3372a9b2be866da2277"), "name" : "user9", "age" : 9 }
 
-    for u in db.users.find({"$where":"this.age > 7 || this.age < 3"}): print u
+    for u in db.users.find({"$where":"this.age > 7 || this.age < 3"}): print(u)
     # 显示如下：
     {u'age': 0.0, u'_id': ObjectId('4c47b3372a9b2be866da226e'), u'name': u'user0'}
     {u'age': 1.0, u'_id': ObjectId('4c47b3372a9b2be866da226f'), u'name': u'user1'}
@@ -341,7 +381,7 @@ pymongo 提供原生的 MongoDB 操作
     {u'age': 8.0, u'_id': ObjectId('4c47b3372a9b2be866da2276'), u'name': u'user8'}
     {u'age': 9.0, u'_id': ObjectId('4c47b3372a9b2be866da2277'), u'name': u'user9'}
 
-    for u in db.users.find().where("this.age > 7 || this.age < 3"): print u
+    for u in db.users.find().where("this.age > 7 || this.age < 3"): print(u)
     # 显示如下：
     {u'age': 0.0, u'_id': ObjectId('4c47b3372a9b2be866da226e'), u'name': u'user0'}
     {u'age': 1.0, u'_id': ObjectId('4c47b3372a9b2be866da226f'), u'name': u'user1'}
@@ -350,7 +390,7 @@ pymongo 提供原生的 MongoDB 操作
     {u'age': 9.0, u'_id': ObjectId('4c47b3372a9b2be866da2277'), u'name': u'user9'}
 
     # 使用自定义的 function, javascript语法的
-    for u in db.users.find().where("function() { return this.age > 7 || this.age < 3;}"): print u
+    for u in db.users.find().where("function() { return this.age > 7 || this.age < 3;}"): print(u)
     # 显示如下：
     {u'age': 0.0, u'_id': ObjectId('4c47b3372a9b2be866da226e'), u'name': u'user0'}
     {u'age': 1.0, u'_id': ObjectId('4c47b3372a9b2be866da226f'), u'name': u'user1'}
@@ -374,7 +414,7 @@ pymongo 提供原生的 MongoDB 操作
         db.users.insert(u)
 
     # 查询 age 小于 15 的
-    for u in db.users.find({"age":{"$lt":15}}): print u
+    for u in db.users.find({"age":{"$lt":15}}): print(u)
 
     # 查询结果如下：
     {u'age': 10, u'_id': ObjectId('4c9b7465499b1408f1000000'), u'name': u'user0'}
@@ -500,7 +540,7 @@ pymongo 提供原生的 MongoDB 操作
     # 查询工具类 使用范例
     age = Field("age")
     # 查询 age 小于 15 的
-    for u in db.users.find(age < 15): print u
+    for u in db.users.find(age < 15): print(u)
 
     # 查询结果如下：
     {u'age': 10, u'_id': ObjectId('4c9b7465499b1408f1000000'), u'name': u'user0'}
@@ -510,20 +550,20 @@ pymongo 提供原生的 MongoDB 操作
     {u'age': 14, u'_id': ObjectId('4c9b7465499b1408f1000004'), u'name': u'user4'}
 
     # 其它查询写法例如：
-    for u in db.users.find(age <= 12): print u
-    for u in db.users.find(age > 17): print u
-    for u in db.users.find(age == 15): print u
-    for u in db.users.find(age != 15): print u
+    for u in db.users.find(age <= 12): print(u)
+    for u in db.users.find(age > 17): print(u)
+    for u in db.users.find(age == 15): print(u)
+    for u in db.users.find(age != 15): print(u)
     # 查询 name 为 user2 的
-    for u in db.users.find(Field("name") == "user2"): print u
+    for u in db.users.find(Field("name") == "user2"): print(u)
 
     # in 和 not in 的写法较之前的不同(可考虑更优雅的写法)
-    for u in db.users.find(age.In(13,14)): print u  # in
-    for u in db.users.find(age.not_in(13,14)): print u  # not in
-    for u in db.users.find(Field("data").all(1,2,3)): print u  # all: 查询data数组中至少包含 1、2、3 的
-    for u in db.users.find(Field("data").size(3)): print u # size: 查询data数组的长度为3的
-    # for u in db.users.find({'t':{'$type':1}}): print u
-    for u in db.users.find(Field("t").type("number")): print u # 按类型查询，结果同上句
+    for u in db.users.find(age.In(13,14)): print(u)  # in
+    for u in db.users.find(age.not_in(13,14)): print(u)  # not in
+    for u in db.users.find(Field("data").all(1,2,3)): print(u)  # all: 查询data数组中至少包含 1、2、3 的
+    for u in db.users.find(Field("data").size(3)): print(u) # size: 查询data数组的长度为3的
+    # for u in db.users.find({'t':{'$type':1}}): print(u)
+    for u in db.users.find(Field("t").type("number")): print(u) # 按类型查询，结果同上句
 
     ################# 查询工具类 end #################################
 
@@ -551,8 +591,8 @@ pymongo 提供原生的 MongoDB 操作
     {'age': {'$gt': 12, '$lt': 15}, 'name': 'user3'}
 
     # 使用多条件查询范例
-    for u in db.users.find(AND(age > 12, age < 15)): print u
-    for u in db.users.find(AND(name == "user3", age > 12, age < 15)): print u
+    for u in db.users.find(AND(age > 12, age < 15)): print(u)
+    for u in db.users.find(AND(name == "user3", age > 12, age < 15)): print(u)
 
     ################# 多条件查询工具类 end #################################
 
@@ -564,7 +604,7 @@ pymongo 提供原生的 MongoDB 操作
 
   1. 创建、查看索引
     # 查看索引
-    for u in db.system.indexes.find(): print u
+    for u in db.system.indexes.find(): print(u)
     # 显示： { "name" : "_id_", "ns" : "test.users", "key" : { "_id" : 1 }, 'v': 0 }
 
     # 删除 集合的全部索引(不包括 _id 等系统索引)
@@ -586,14 +626,14 @@ pymongo 提供原生的 MongoDB 操作
     explain 命令让我们获知系统如何处理查询请求。
     利用 explain 命令，我们可以很好地观察系统如何使用索引来加快检索，同时可以针对性优化索引。
 
-    print db.users.find({'age':{'$gt':4}}).explain()
+    print(db.users.find({'age':{'$gt':4}}).explain())
     # 显示如： {u'nYields': 0, u'allPlans': [{u'cursor': u'BtreeCursor age_1', u'indexBounds': {u'age': [[4, 1.7976931348623157e+308]]}}], u'nChunkSkips': 0, u'millis': 0, u'n': 0, u'cursor': u'BtreeCursor age_1', u'indexBounds': {u'age': [[4, 1.7976931348623157e+308]]}, u'nscannedObjects': 0, u'isMultiKey': False, u'indexOnly': False, u'nscanned': 0}
 
     # 深层索引
-    print db.users.find({"contact":{"postcode":{"$lt":100009}}}).explain()
+    print(db.users.find({"contact":{"postcode":{"$lt":100009}}}).explain())
     # 显示如: {u'nYields': 0, u'allPlans': [{u'cursor': u'BtreeCursor contact_1', u'indexBounds': {u'contact': [[{u'postcode': {u'$lt': 100009}}, {u'postcode': {u'$lt': 100009}}]]}}], u'nChunkSkips': 0, u'millis': 0, u'n': 0, u'cursor': u'BtreeCursor contact_1', u'indexBounds': {u'contact': [[{u'postcode': {u'$lt': 100009}}, {u'postcode': {u'$lt': 100009}}]]}, u'nscannedObjects': 0, u'isMultiKey': False, u'indexOnly': False, u'nscanned': 0}
 
-    print db.users.find({"contact.postcode":{"$lt":100009}}).explain()
+    print(db.users.find({"contact.postcode":{"$lt":100009}}).explain())
     # 显示如: {u'nYields': 0, u'allPlans': [{u'cursor': u'BtreeCursor contact.postcode_1', u'indexBounds': {u'contact.postcode': [[-1.7976931348623157e+308, 100009]]}}], u'nChunkSkips': 0, u'millis': 0, u'n': 9, u'cursor': u'BtreeCursor contact.postcode_1', u'indexBounds': {u'contact.postcode': [[-1.7976931348623157e+308, 100009]]}, u'nscannedObjects': 9, u'isMultiKey': False, u'indexOnly': False, u'nscanned': 9}
 
     返回结果信息包括:

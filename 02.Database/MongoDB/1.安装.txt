@@ -304,6 +304,7 @@ mongoexport 备份
 
 mongoimport 导入
     导入json格式文件，一般是由 mongoexport 生成的内容
+	注： 不支持 --uri 参数
     mongoimport --port=57017 -d bello_nlp -c jds --drop /data/db/jds_duplicate_removal.json
 
 

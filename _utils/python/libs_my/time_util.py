@@ -14,7 +14,7 @@ import logging
 
 __all__ = ('add', 'sub', 'to_string', 'to_time', 'to_datetime', 'to_date', 'to_timestamp', 'to_datetime_time',
            'datetime_time_to_str', 'is_dst', 'add_datetime_time', 'sub_datetime_time', 'get_datetime', 'get_week_range',
-           'get_month_range', 'get_month_list')
+           'get_month_range', 'get_month_list', 'get_time_string')
 
 DEFAULT_FORMAT = '%Y-%m-%d %H:%M:%S'  # 默认时间格式
 DEFAULT_DATE_FORMAT = '%Y-%m-%d'  # 默认日期格式
@@ -28,7 +28,6 @@ FORMAT_LIST = (DEFAULT_FORMAT, '%Y-%m-%d %H:%M:%S.%f', DEFAULT_DATE_FORMAT, DEFA
                '%Y-%m-%d %p %I:%M:%S', '%Y-%m-%d %p %I:%M', '%Y/%m/%d %p %I:%M:%S', '%Y/%m/%d %p %I:%M',
                "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%dT%H:%M:%S+08:00", "%Y-%m-%dT%H:%M:%S.%f+08:00",
                )
-
 
 # fix py3
 try:
@@ -553,6 +552,56 @@ def get_datetime(datetime_date, datetime_time):
     if datetime_time is None:
         return result
     return result.replace(hour=datetime_time.hour, minute=datetime_time.minute, second=datetime_time.second)
+
+
+def get_time_string(unix_time):
+    """获取指定时间距离现在多久的字符串
+    :param {time|datetime.datetime|datetime.date|int|long|float|string} unix_time: 原始时间(必须比现在小)
+    :return {string}: 时间距离现在多久
+    """
+    if not isinstance(unix_time, (int, long, float)):
+        unix_time = to_timestamp(unix_time)
+
+    nowtime = int(time.time())
+    delta = int(nowtime - unix_time)
+
+    min_seconds = 60
+    hour_seconds = 60 * min_seconds
+    day_seconds = 24 * hour_seconds
+    mon_seconds = 30 * day_seconds
+    year_seconds = 12 * mon_seconds
+
+    minutes = delta // min_seconds
+    hour = delta // hour_seconds
+    day = delta // day_seconds
+    mon = delta // mon_seconds
+    year = delta // year_seconds
+
+    if year > 0:
+        return "%s年前" % year
+    if mon > 0:
+        return "%s个月前" % mon
+    if day > 0:
+        return "%s天前" % day
+    if hour > 0:
+        return "%s小时前" % hour
+    if minutes > 0:
+        return "%s分钟前" % minutes
+    return "刚刚"
+
+
+def calculate_age(born):
+    """计算年龄"""
+    born = to_date(born)
+    today = datetime.date.today()
+    try:
+        birthday = born.replace(year=today.year)
+    except ValueError:  # raised when birth date is February 29 and the current year is not a leap year
+        birthday = born.replace(year=today.year, day=born.day - 1)
+    if birthday > today:
+        return today.year - born.year - 1
+    else:
+        return today.year - born.year
 
 
 def get_week_range(date):

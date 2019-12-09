@@ -499,8 +499,8 @@ mongo 是 MongoDB 自带的交互式 Javascript shell，用来对 Mongod 进行�
     db.system.indexes.find()
     // 显示： { "name" : "_id_", "ns" : "test.users", "key" : { "_id" : 1 }, 'v': 0 }
 
-    db.users.ensureIndex({name:1})
-    db.users.ensureIndex({age:1})
+    db.users.ensureIndex({name:-1})  // -1 表示反序索引， 1 是正序索引
+    db.users.ensureIndex({age:-1})
     db.users.reIndex()
 
 

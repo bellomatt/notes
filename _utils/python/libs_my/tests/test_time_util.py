@@ -418,6 +418,32 @@ class TimeUtilTest(unittest.TestCase):
         self.assertEqual(sub_datetime_time('8:8:0', None), None)
         self.assertEqual(sub_datetime_time('', '0:8:0'), None)
 
+    def test_get_time_string(self):
+        now = datetime.now()
+        dtime1 = now - timedelta(days=123)
+        ts = get_time_string(dtime1)
+        self.assertEqual(ts, '4个月前')
+
+        dtime1 = now - timedelta(days=370)
+        ts = get_time_string(dtime1)
+        self.assertEqual(ts, '1年前')
+
+        dtime1 = now - timedelta(hours=26)
+        ts = get_time_string(dtime1)
+        self.assertEqual(ts, '1天前')
+
+        dtime1 = now - timedelta(minutes=4)
+        ts = get_time_string(dtime1)
+        self.assertEqual(ts, '4分钟前')
+
+        dtime1 = now - timedelta(seconds=10)
+        ts = get_time_string(dtime1)
+        self.assertEqual(ts, '刚刚')
+
+        dtime1 = now - timedelta(minutes=4)
+        ts = get_time_string(time.mktime(dtime1.timetuple()))
+        self.assertEqual(ts, '4分钟前')
+
     # get_week_range 测试
     def test_get_week_range(self):
         # 默认时间
