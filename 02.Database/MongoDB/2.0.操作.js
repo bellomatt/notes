@@ -22,6 +22,7 @@ mongo 是 MongoDB 自带的交互式 Javascript shell，用来对 Mongod 进行�
     db.集合名.stats() // 查看colleciont状态
     db.集合名.totalIndexSize() // 查询所有索引的大小
     db['集合名'].stats()  // 除了用点号来调用集合之外，也可以用下标来调用
+    db.getCollection("message").find() // 另一种获取表的写法
 
     // 其它数据库的引用(变量 db 表示当前数据库)
     数据库名2 = db.getSisterDB("数据库名2")
@@ -36,8 +37,8 @@ mongo 是 MongoDB 自带的交互式 Javascript shell，用来对 Mongod 进行�
     db.auth('admin', 'pwd')    // 用户认证(设置数据库连接验证)
     db.removeUser('mongodb')    // 删除用户
     // 添加权限
-	db.system.users.update({"_id" : "admin.admin"}, {"$push":{"roles":{"role" : "dbOwner", "db" : "bello_nlp"}}})
-	db.grantRolesToUser("abc", [{role:"readWrite",db:"test"}])
+    db.system.users.update({"_id" : "admin.admin"}, {"$push":{"roles":{"role" : "dbOwner", "db" : "bello_nlp"}}})
+    db.grantRolesToUser("abc", [{role:"readWrite",db:"test"}])
 
   2. 插入
     db.集合名.save({'键1' : 值1, '键2' : 值2}) // 插入数据(可以更新，也可以插入数据),返回新增的主键值
@@ -54,13 +55,16 @@ mongo 是 MongoDB 自带的交互式 Javascript shell，用来对 Mongod 进行�
     db.users.update({}, {$inc:{age:10}}, false, true) // update users set age = age + 10
     db.users.update({name:"user1"}, {$inc:{age:10}, $set:{sex:1}}) // update users set age = age + 10, sex = 1 where name = 'user1'
     db.users.update({'_id':17}, {$unset:{'addUser':1}}) // 删除字段 "addUser"
+    // 以上的更新操作只会更新符合条件的一条记录, 设置 multi 可以全部更新
+    // 注意：multi必须要与$set组合使用否则会报错
+    db.users.update({name:"user1"}, {$set:{age:100, sex:0}}, {multi:true})
 
     // update() 有几个参数需要注意。
     db.集合名.update(criteria, objNew, upsert, mult)
     criteria: 需要被更新的条件表达式
     objNew: 更新表达式
-    upsert: 如目标记录不存在，是否插入新文档。
-    multi: 是否更新多个文档。
+    upsert: 如目标记录不存在，是否插入新文档。默认不新增。
+    multi: 是否更新多个文档。默认只更新一行。
 
   4. 删除
     db.集合名.drop()  // 删除集合
@@ -92,6 +96,8 @@ mongo 是 MongoDB 自带的交互式 Javascript shell，用来对 Mongod 进行�
     // select * from 集合名 skip 2 limit 3
     // MySQL 的写法： select * from 集合名 limit 2, 3
     db.集合名.find().skip(2).limit(3)
+    // 真实案例：
+    db.getCollection("message").find({"account_id" : ObjectId("5d56a244d8941f10be38906b")}).limit(1000).skip(0)
 
     // 单独的写
     db.集合名.find().skip(从第几行开始)
