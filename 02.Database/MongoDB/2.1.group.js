@@ -15,7 +15,7 @@ group 大约需要一下几个参数:
 		db.表名.group 语法中，使用 keyf、reduce、cond
 		db.runCommand 语法中，使用 $keyf、$reduce、condition
 
- 
+
 下面介绍一个实例：
 
 	for(var i=1; i<20; i++){
@@ -168,10 +168,40 @@ group 大约需要一下几个参数:
 	}
 
 
-6. 使用 MapReduce
+6. 使用 Map/Reduce
 	注意：
-	1.mapreduce 是根据 map 函数里调用的 emit 函数的第一个参数来进行分组的
+	1.Map/Reduce 是根据 map 函数里调用的 emit 函数的第一个参数来进行分组的
 	2.仅当根据分组键分组后一个键匹配多个文档，才会将 key 和文档集合交由reduce函数处理。
+
+    执行函数：
+    db.runCommand(
+    {
+        mapreduce : <collection>,
+        map : <mapfunction>,
+        reduce : <reducefunction>
+        [, query : <query filter object>]
+        [, sort : <sort the query.  useful   optimization>] for
+        [, limit : <number of objects to   from collection>] return
+        [, out : <output-collection name>]
+        [, keeptemp: < | >] true false
+        [, finalize : <finalizefunction>]
+        [, scope : <object where fields go into javascript global scope >]
+        [, verbose :  ] true
+    });
+
+    参数说明:
+    mapreduce: 要操作的目标集合。
+    map: 映射函数 (生成键值对序列，作为 reduce 函数参数)。
+    reduce: 统计函数。
+    query: 目标记录过滤。
+    sort: 目标记录排序。
+    limit: 限制目标记录数量。
+    out: 统计结果存放集合 (不指定则使用临时集合，在客户端断开后自动删除)。
+    keeptemp: 是否保留临时集合。
+    finalize: 最终处理函数 (对 reduce 返回结果进行最终整理后存入结果集合)。
+    scope: 向 map、reduce、finalize 导入外部变量。
+    verbose: 显示详细的时间统计信息。
+
 
 	// 按 name 前6个字符分组，且统计各组的数量
 	db.runCommand(

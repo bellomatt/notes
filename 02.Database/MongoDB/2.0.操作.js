@@ -75,6 +75,9 @@ mongo 是 MongoDB 自带的交互式 Javascript shell，用来对 Mongod 进行�
     db.users.remove() // 删除集合里的所有记录
     db.users.remove({'yy':5}) // 删除yy=5的记录
 
+	// 下面写法报错，不能使用 find 查询语句
+	db.users.find({"status":"deleted"}).remove();
+
   5. 查询
     db.集合名.find() // 显示集合的所有内容
     db.集合名.find({"键1":{"$lt":值1}}) // 按条件查询，查询 键1小于值1的资料
@@ -931,45 +934,6 @@ mongo 是 MongoDB 自带的交互式 Javascript shell，用来对 Mongod 进行�
     执行 update 操作时同样检查一下 nscanned，并使用索引减少文档扫描数量。
     使用 db.eval() 在服务端执行某些统计操作。
     减少返回文档数量，使用 skip & limit 分页。
-
-
-
-九、Map/Reduce
-    执行函数：
-    db.runCommand(
-    {
-        mapreduce : <collection>,
-        map : <mapfunction>,
-        reduce : <reducefunction>
-        [, query : <query filter object>]
-        [, sort : <sort the query.  useful   optimization>] for
-        [, limit : <number of objects to   from collection>] return
-        [, out : <output-collection name>]
-        [, keeptemp: < | >] true false
-        [, finalize : <finalizefunction>]
-        [, scope : <object where fields go into javascript global scope >]
-        [, verbose :  ] true
-    });
-
-    参数说明:
-    mapreduce: 要操作的目标集合。
-    map: 映射函数 (生成键值对序列，作为 reduce 函数参数)。
-    reduce: 统计函数。
-    query: 目标记录过滤。
-    sort: 目标记录排序。
-    limit: 限制目标记录数量。
-    out: 统计结果存放集合 (不指定则使用临时集合，在客户端断开后自动删除)。
-    keeptemp: 是否保留临时集合。
-    finalize: 最终处理函数 (对 reduce 返回结果进行最终整理后存入结果集合)。
-    scope: 向 map、reduce、finalize 导入外部变量。
-    verbose: 显示详细的时间统计信息。
-
-    1.测试数据：
-        db.users.drop(); // 先清空
-        for (var i = 0; i < 1000; i++) {
-            var u = { name : "user" + i, age : i % 40 + 1, sex : i % 2 };
-            db.users.insert(u);
-        }
 
 
 
