@@ -427,6 +427,50 @@ mongoengine 提供对 MongoDB 的 ORM 操作
     l = list(a)
 
 
+    # 实例1:
+    from bson import ObjectId
+    class Message(documents):
+        account = LazyReferenceField(document_type='Account', db_field='account_id') # 外键关联，注意数据库字段是 account_id
+        filter_status = StringField(default='pending', choices=['pending', 'filtered', 'un_filtered'])  # 邮件是否被过滤掉
+        # 其它字段...
+
+    collection = Message._get_collection()
+    account_ids = [ObjectId('5df2153ede3ffb0001dd70f8'), ObjectId('5df1b3b961414d0001afa9fd'), ObjectId('5def1e34d8941f08fdf932b0')]
+    # 按 account_id 分组,得注意下面写的是 account_id 而不是字段名 account
+    sync_counts = collection.aggregate([
+        {"$match": {"account_id": {"$in": account_ids}}},
+        {'$group': {"_id": "$account_id", "count": {"$sum": 1}}},
+    ], allowDiskUse=True)
+    # 由于没法把两个不同条件的分组合并，只好分开两次查询
+    unfiltered_counts = collection.aggregate([
+        {"$match": {"account_id": {"$in": account_ids}, "filter_status": 'un_filtered'}},
+        {'$group': {"_id": "$account_id", "count": {"$sum": 1}}},
+    ], allowDiskUse=True)
+    # 遍历结果
+    result = {}  # 格式为: {'account_id': {'sync_count':值1, 'unfiltered_count':值2}}
+    for item in sync_counts:
+        # 返回结果的 item.get('_id') 是 ObjectId 类型，好在 dict 支持它做key
+        result.setdefault(item.get('_id'), {})['sync_count'] = item.get('count')
+    for item in unfiltered_counts:
+        result.setdefault(item.get('_id'), {})['unfiltered_count'] = item.get('count')
+
+
+    # 实例2(以不同方式实现实例1的功能,共用实例1的Model):
+    collection = Message._get_collection()
+    reduce = 'function(doc,prev){prev.sync_count++;if(doc.filter_status=="un_filtered")prev.unfiltered_count++;}'
+    counts = collection.group(key={"account_id": 1},
+                              condition={"account_id": {"$in": account_ids}},
+                              initial={'sync_count': 0, 'unfiltered_count': 0},
+                              reduce=reduce)
+    result = {}  # 格式为: {'account_id': {'sync_count':值1, 'unfiltered_count':值2}}
+    for item in counts:
+        account_id = item.pop('account_id')
+        # 计算后结果会有小数，这里改回 int 类型
+        for k, v in item.items():
+            item[k] = int(v)
+        result[account_id] = item
+
+
 11. 在服务器端执行javascript代码
     # 通过MongoEngine QuerySet对象的 exec_js 方法可以将javascript代码作为字符串发送给服务器端执行，然后返回执行的结果。
     User.objects.exec_js("db.getCollectionNames()")  # 查询该数据库都有那些集合

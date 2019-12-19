@@ -518,6 +518,10 @@ mongo 是 MongoDB 自带的交互式 Javascript shell，用来对 Mongod 进行�
     db.users.ensureIndex({age:1}, {backgroud:true})
     db.users.reIndex({backgroud:true})
 
+  1.1. 强制使用索引
+	db.users.createIndex({b:1,c:1})  // 必须先有索引
+	db.users.find({c:{$gte: 100, $lte: 200}, b:"food"}).hint({c:1,b:1})
+
 
   2. explain
     explain 命令让我们获知系统如何处理查询请求。

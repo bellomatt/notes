@@ -1,28 +1,33 @@
 ﻿
-MongoDB aggregate 做统计数据（group进阶）:
-	https://blog.csdn.net/en_joker/article/details/77716599
+MongoDB aggregate 做统计数据(group进阶)
 
 
-操作符介绍：
-	$project：包含、排除、重命名和显示字段
-	$match：查询，需要同find()一样的参数
-	$limit：限制结果数量
-	$skip：忽略结果的数量
-	$sort：按照给定的字段排序结果
-	$group：按照给定表达式组合结果
-	$unwind：分割嵌入数组到自己顶层文件
+相关使用: 
+	db.collection.aggregate([pipeline], options);
 
-
-相关使用：
-	db.collection.aggregate([array]);
-
-	array 可是是任何一个或多个操作符。
+	pipeline 可是是任何一个或多个操作符。
 	group 和 match 的用法，使用过sqlserver，group的用法很好理解，根据指定列进行分组统计，可以统计分组的数量，也能统计分组中的和或者平均值等。
 	group 之前的 match，是对源数据进行查询，group 之后的 match 是对 group 之后的数据进行筛选；
 	同理，sort，skip，limit 也是同样的原理；
 
 
-下面以实例介绍用法：
+array 操作符介绍: 
+	$project: 包含、排除、重命名和显示字段
+	$match: 查询，需要同find()一样的参数
+	$limit: 限制结果数量
+	$skip: 忽略结果的数量
+	$sort: 按照给定的字段排序结果
+	$group: 按照给定表达式组合结果
+	$count: 返回统计行数
+	$unwind: 分割嵌入数组到自己顶层文件
+
+options 操作符介绍:
+	allowDiskUse: Aggregation pipeline 操作有内存限制，如果需要处理大量数据，可以设 allowDiskUse=true 来写文件处理大量数据。
+	hint: 使用指定索引。
+
+
+
+下面以实例介绍用法: 
 	for (var i=1; i<=22; i++) {
 		db.collection.insert({_id:i, name:"u"+i, status:i%2, age:i%5});
 	}
@@ -124,9 +129,51 @@ MongoDB aggregate 做统计数据（group进阶）:
 	{"_id":16,"name":"u16","age":1}
 	{"_id":20,"name":"u20","age":0}
 	{"_id":22,"name":"u22","age":2}
- 
+
+
 7. $unwind 操作符
 	这个操作符可以将一个数组的文档拆分为多条文档，在特殊条件下有用，本人暂没有进行过多的研究。
+
+
+8. $count 操作符
+	db.collection.aggregate([
+		{$match:{status:1}},
+		{$count:"status"}
+	]);
+	// 返回结果
+	{"status": 11}
+
+
+options 操作符
+1. 性能分析, explain
+	db.collection.explain().aggregate([  // explain() 提供性能分析
+		{$match:{age:{$lte:2},status:0}},
+		{$group:{_id:{status:"$status", age:"$age"},count:{$sum:1}}},
+		{$sort:{_id:1}}
+	]);
+
+
+2. 大量数据 allowDiskUse
+	db.collection.aggregate([
+		{$match:{age:{$lte:2},status:0}},
+		{$group:{_id:{status:"$status", age:"$age"},count:{$sum:1}}},
+		{$sort:{_id:1}}
+	],
+	{allowDiskUse: true}  // allowDiskUse 设为true允许写文件来处理超出内存的数据
+	);
+
+
+3. hint 指定索引
+	// 使用前必须先有索引，否则会报错
+	db.collection.createIndex( { status: 1, age: 1 } );
+	// 查询时
+	db.collection.aggregate([
+		{$match:{age:{$lte:2},status:0}},
+		{$group:{_id:{status:"$status", age:"$age"},count:{$sum:1}}},
+		{$sort:{_id:1}}
+	],
+	{ hint: { status: 1, age: 1 } }  // 使用指定的这个索引
+	);
 
 
 
