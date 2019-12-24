@@ -500,6 +500,14 @@
     data = [(em, ticket_type) for em in employees for ticket_type in ticket_types]
     print(data) # 打印: [('aa', 101), ('aa', 102), ('bb', 101), ('bb', 102)]
 
+    # 多层嵌套的 list 推导(注意：第二层的for跟if一样放后面)
+    q1 = [[1, 2], [3, 4], [5, 6]]
+    print([i for l in q1 for i in l])  # 打印: [1, 2, 3, 4, 5, 6]
+    print(sum(q1, []))  # 同样实现上面功能，打印: [1, 2, 3, 4, 5, 6]
+
+    qa = [['1a', '2bb'], ['3c', '4dd'], ['5e', '6f']]
+    print([j for l in qa for i in l for j in i])  # 打印: ['1', 'a', '2', 'b', 'b', '3', 'c', '4', 'd', 'd', '5', 'e', '6', 'f']
+
 
     # 将字典的key, value倒过来的写法：
     a_dict = {'a': 1, 'b': 2, 'c': 3}

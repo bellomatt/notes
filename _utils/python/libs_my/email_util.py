@@ -37,13 +37,21 @@ __all__ = ("send_mail",)
 logger = logging.getLogger('libs_my.email_util')
 
 # 图片类型
-IMAGE_TYPES = ('jpg', 'jpeg', 'bmp', 'png', 'gif',)
 TYPE_NAME = {
     "jpeg": "image/jpeg",
     "jpg": "image/jpeg",
     "bmp": "application/x-bmp",
     "png": "image/png",
     "gif": "image/gif",
+    "fax": "image/fax",
+    "ico": "image/x-icon",
+    "jfif": "image/jpeg",
+    "jpe": "image/jpeg",
+    "net": "image/pnetvue",
+    "rp": "image/vnd.rn-realpix",
+    "tif": "image/tiff",
+    "tiff": "image/tiff",
+    "wbmp": "image/vnd.wap.wbmp",
 }
 
 
@@ -142,7 +150,7 @@ def send_mail(host, user, password, to_list, **kwargs):
             suffix = file_name.split('.')[-1]
             suffix = suffix.lower()
             # 处理图片附件
-            if suffix in IMAGE_TYPES:
+            if suffix in TYPE_NAME:
                 index += 1
                 mime = MIMEImage(file_content)
                 mime.add_header('Content-ID', '<image%d>' % index)
