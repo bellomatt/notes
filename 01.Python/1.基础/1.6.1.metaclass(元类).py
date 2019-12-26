@@ -230,9 +230,15 @@
 __metaclass__ 属性
     你可以在写一个类的时候为其添加 __metaclass__ 属性。
 
+        # py2.x 的元类继承写法
         class Foo(object):
             __metaclass__ = something…
         […]
+
+        # py3.x 的元类继承写法
+        class Foo(object, metaclass = something…):
+            pass
+
 
     如果你这么做了，Python就会用元类来创建类Foo。小心点，这里面有些技巧。
     你首先写下 class Foo(object)，但是类对象Foo还没有在内存中创建。
@@ -280,7 +286,7 @@ __metaclass__ 属性
 
         # 注意：这里绝不能继承 object 类。
         # 否则按 __metaclass__ 的查找顺序会去查找 父类object 的 __metaclass__ ， 再去查找 父类object 的模块的 __metaclass__ 。那就导致这模块的 __metaclass__ 失效。
-        # 另外，发现在 py2.6, py2.7 中这样可运行成功，但 py3.4 失败，原因未知。
+        # 另外，发现在 py2.6、py2.7 中这样可运行成功。但 py3.x 失败，估计是不再允许作用于整个模块的元类。
         class Foo():
 
             # 我们也可以只在这里定义 __metaclass__ ，这样就只会作用于这个类中
