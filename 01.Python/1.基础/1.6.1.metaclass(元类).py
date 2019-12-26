@@ -17,7 +17,7 @@
         …       pass
         …
         >>> my_object = ObjectCreator()
-        >>> print my_object
+        >>> print(my_object)
         <__main__.ObjectCreator object at 0x8974f2c>
 
     但是，Python中的类还远不止如此。类同样也是一种对象。是的，没错，就是对象。
@@ -38,22 +38,22 @@
 
     下面是示例：
 
-        >>> print ObjectCreator # 你可以打印一个类，因为它其实也是一个对象
+        >>> print(ObjectCreator) # 你可以打印一个类，因为它其实也是一个对象
         <class '__main__.ObjectCreator'>
         >>> def echo(o):
-        …       print o
+        …       print(o)
         …
         >>> echo(ObjectCreator) # 你可以将类做为参数传给函数
         <class '__main__.ObjectCreator'>
-        >>> print hasattr(ObjectCreator, 'new_attribute')
+        >>> print(hasattr(ObjectCreator, 'new_attribute'))
         False
         >>> ObjectCreator.new_attribute = 'foo' #  你可以为类增加属性
-        >>> print hasattr(ObjectCreator, 'new_attribute')
+        >>> print(hasattr(ObjectCreator, 'new_attribute'))
         True
-        >>> print ObjectCreator.new_attribute
+        >>> print(ObjectCreator.new_attribute)
         foo
         >>> ObjectCreatorMirror = ObjectCreator # 你可以将类赋值给一个变量
-        >>> print ObjectCreatorMirror()
+        >>> print(ObjectCreatorMirror())
         <__main__.ObjectCreator object at 0x8997b4c>
 
 
@@ -72,9 +72,9 @@
         …           return Bar
         …
         >>> MyClass = choose_class('foo')
-        >>> print MyClass # 函数返回的是类，不是类的实例
+        >>> print(MyClass) # 函数返回的是类，不是类的实例
         <class '__main__'.Foo>
-        >>> print MyClass() # 你可以通过这个类创建类实例，也就是对象
+        >>> print(MyClass()) # 你可以通过这个类创建类实例，也就是对象
         <__main__.Foo object at 0x89c6d4c>
 
     但这还不够动态，因为你仍然需要自己编写整个类的代码。
@@ -83,13 +83,13 @@
     但就和Python中的大多数事情一样，Python仍然提供给你手动处理的方法。
     还记得内建函数 type 吗？这个古老但强大的函数能够让你知道一个对象的类型是什么，就像这样：
 
-        >>> print type(1)
+        >>> print(type(1))
         <type 'int'>
-        >>> print type("1")
+        >>> print(type("1"))
         <type 'str'>
-        >>> print type(ObjectCreator)
+        >>> print(type(ObjectCreator))
         <type 'type'>
-        >>> print type(ObjectCreator())
+        >>> print(type(ObjectCreator()))
         <class '__main__.ObjectCreator'>
 
     这里， type 有一种完全不同的能力，它也能动态的创建类。 type 可以接受一个类的描述作为参数，然后返回一个类。
@@ -105,9 +105,9 @@
     可以手动像这样创建：
 
         >>> MyShinyClass = type('MyShinyClass', (), {}) # 返回一个类对象
-        >>> print MyShinyClass
+        >>> print(MyShinyClass)
         <class '__main__.MyShinyClass'>
-        >>> print MyShinyClass() #  创建一个该类的实例
+        >>> print(MyShinyClass()) #  创建一个该类的实例
         <__main__.MyShinyClass object at 0x8997cec>
 
     你会发现我们使用“MyShinyClass”作为类名，并且也可以把它当做一个变量来作为类的引用。
@@ -123,14 +123,14 @@
 
     并且可以将Foo当成一个普通的类一样使用：
 
-        >>> print Foo
+        >>> print(Foo)
         <class '__main__.Foo'>
-        >>> print Foo.bar
+        >>> print(Foo.bar)
         True
         >>> f = Foo()
-        >>> print f
+        >>> print(f)
         <__main__.Foo object at 0x8a9b84c>
-        >>> print f.bar
+        >>> print(f.bar)
         True
 
     当然，你可以向这个类继承，所以，如下的代码：
@@ -141,15 +141,15 @@
     就可以写成：
 
         >>> FooChild = type('FooChild', (Foo,),{})
-        >>> print FooChild
+        >>> print(FooChild)
         <class '__main__.FooChild'>
-        >>> print FooChild.bar # bar属性是由Foo继承而来
+        >>> print(FooChild.bar) # bar属性是由Foo继承而来
         True
 
     最终你会希望为你的类增加方法。只需要定义一个有着恰当签名的函数并将其作为属性赋值就可以了。
 
         >>> def echo_bar(self):
-        …       print self.bar
+        …       print(self.bar)
         …
         >>> FooChild = type('FooChild', (Foo,), {'echo_bar': echo_bar})
         >>> hasattr(Foo, 'echo_bar')
@@ -380,7 +380,7 @@ __metaclass__ 属性
     但是如果你像这样做的话：
 
         guy  = Person(name='bob', age='35')
-        print guy.age
+        print(guy.age)
 
     这并不会返回一个 IntegerField 对象，而是会返回一个 int ，甚至可以直接从数据库中取出数据。
     这是有可能的，因为 models.Model 定义了 __metaclass__ ， 并且使用了一些魔法能够将你刚刚定义的简单的Person类转变成对数据库的一个复杂hook。
