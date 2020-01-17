@@ -8,6 +8,7 @@ import json
 import uuid
 import time
 import datetime
+import base64
 import logging
 import decimal
 
@@ -86,6 +87,20 @@ def encode2bytes(content):
         # If that fails, ignore error messages
         content = content.encode('utf-8', 'ignore')
     return content
+
+
+def base64_encode(s):
+    """使用base64加密"""
+    s = encode2bytes(s)
+    res = base64.b64encode(s)
+    return decode2str(res)
+
+
+def base64_decode(s):
+    """使用base64解码"""
+    s = encode2bytes(s)
+    res = base64.b64decode(s)
+    return decode2str(res)
 
 
 def enum_file_change(key, file_name):
@@ -268,4 +283,3 @@ def dump_json_file(json_value, file_path):
     except Exception as e:
         logging.error('write a json file error:%s', e, exc_info=True)
     return True
-

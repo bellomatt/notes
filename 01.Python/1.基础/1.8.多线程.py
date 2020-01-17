@@ -111,6 +111,29 @@ http://blog.sina.com.cn/s/blog_4b5039210100esc1.html
 http://sm4llb0y.blog.163.com/blog/static/18912397200981594357140/
 
 
+子线程随主线程一起结束
+    import time
+    import threading
+
+    def test():
+        while True:
+            print(threading.currentThread())
+            time.sleep(1)
+
+    if __name__ == '__main__':
+        t1 = threading.Thread(target=test)
+        # t1.setDaemon(True)
+        t1.start()
+
+        t2 = threading.Thread(target=test)
+        # t2.setDaemon(True)
+        t2.start()
+
+    # 上面代码在 py2 下运行，使用 Ctrol + C 无法终止进程。
+    # 必须设置成“守护线程”，加上 “t1.setDaemon(True)” 才可以在主线程终止时，子线程也终止。
+    # py3 下好像默认就是守护线程。
+
+
 多进程 (从 2.6 起增加了子进程级别的并行开发支持 —— multiprocessing)
     #!/usr/bin/env python
     # -*- coding:utf-8 -*-

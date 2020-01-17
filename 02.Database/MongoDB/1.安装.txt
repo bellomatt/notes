@@ -120,6 +120,9 @@ mac 可以使用 Homebrew 安装 MongoDB
                 <key>ProgramArguments</key>
                 <array>
                     <string>/usr/local/mongodb/bin/mongod</string>
+					<!-- 下面传参给启动程序 mongod，没有参数可不写 -->
+					<string>-f</string>
+					<string>/usr/local/mongodb/mongod.conf</string>
                 </array>
                 <key>RunAtLoad</key>
                 <true/>

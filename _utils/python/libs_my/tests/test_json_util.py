@@ -56,6 +56,12 @@ class TestJsonUtil(unittest.TestCase):
             self.assertTrue(isinstance(s, str))
             self.assertEqual(s, a)
 
+    def test_base64(self):
+        a = "W1tdLCB7fSwgeyJjYWxsYmFja3MiOiBudWxsLCAiZXJyYmFja3MiOiBudWxsLCAiY2hhaW4iOiBudWxsLCAiY2hvcmQiOiBudWxsfV0="
+        ra = '[[], {}, {"callbacks": null, "errbacks": null, "chain": null, "chord": null}]'
+        self.assertEqual(json_util.base64_decode(a), ra)
+        self.assertEqual(json_util.base64_encode(ra), a)
+
     def test_enum_file_change(self):
         """enum_file_change test"""
         file_name = '_example_enum.json'

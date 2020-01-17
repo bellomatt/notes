@@ -17,6 +17,9 @@
            git status  # 文件被修改，需要查看情况
            git diff <filename> # 文件修改情况
 
+           git stash # 临时挂起，不提交而拉取新代码
+           git stash apply # 恢复未提交前的编辑状态
+
            git add . # 如果有新增文件，可以按文件名添加，也可以用 . 一次性添加所有
         4. git commit -am "查看页面不强制要求登录"  # 提交代码
         5. git push origin develop # 推送代码到服务器
@@ -32,6 +35,7 @@
         11. git push origin master # 推送代码到服务器
             git push --force origin myfeature # rebase 后，分支不能正常推时，需要强推上去
         12. git log  # 查看log
+		13. git fetch origin <远程分支名称>:<本地分支名称>  # 在本地新建分支x，但是不会自动切换到该本地分支x，需要手动checkout
 
     常用命令：
         $ git init   # 初始化 git 仓库(需要先进入到仓库目录)
