@@ -8,11 +8,17 @@ Updated on 2019/1/18
 本模块专门处理文件用
 """
 import os
+import queue
 import urllib
 import urllib2
 import logging
 
-__all__=('get_first_lines', 'get_last_lines', 'remove', 'clear', 'download_file')
+__all__ = ('get_first_lines', 'get_last_lines', 'remove', 'clear', 'download_file', 'file_quantity', 'get_file_quantity')
+
+try:
+    long
+except:
+    long = int
 
 
 def get_first_lines(file_path, num=1, include_blank=False):
@@ -26,7 +32,7 @@ def get_first_lines(file_path, num=1, include_blank=False):
     assert isinstance(num, (int, long)) and num >= 1
 
     n_lines = []
-    with open(file_path, 'rb') as fp:
+    with open(file_path) as fp:
         #n_lines = fp.readlines(num) # 为了便于去掉空行，改成逐行读取
         for line in fp:
             if len(n_lines) >= num: break
@@ -55,7 +61,7 @@ def get_last_lines(file_path, num=1, include_blank=False):
     """
     blk_size_max = 4096
     n_lines = []
-    with open(file_path, 'rb') as fp:
+    with open(file_path) as fp:
         fp.seek(0, os.SEEK_END)
         cur_pos = fp.tell()
         while cur_pos > 0 and len(n_lines) < num:
@@ -140,3 +146,38 @@ def download_file(url, file_path):
         status_code = e.code
         res = e.read()
         logging.error("文件下载失败, 返回码:%s, 返回内容:%s" , status_code, res, exc_info=True)
+
+
+def file_quantity(path):
+    """统计文件数量"""
+    file_num = 0
+    for file_or_folder in os.listdir(path):
+        sub_path = os.path.join(path, file_or_folder)
+        if os.path.isfile(sub_path):
+            file_num += 1
+        elif os.path.isdir(sub_path):
+            file_num += file_quantity(sub_path)
+    return file_num
+
+
+def get_file_quantity(folder):
+    """BFS获取文件夹下文件的总数量
+    前面写的是递归的方式处理，感觉对资源的占用不友好，而且python的最大递归深度不超过1000。
+    所以优化了一下，这里用广度优先遍历的方式实现。实测发现，性能差异不大。
+    """
+    # 判断初始文件夹
+    assert os.path.isdir(folder), '请输入有效的文件夹参数'
+    file_num = 0  # 初始化文件数量
+    folder_queue = queue.Queue()
+    folder_queue.put_nowait(folder)  # 初始化队列的值
+    # 处理队列里的文件夹
+    while not folder_queue.empty():
+        folder = folder_queue.get_nowait()
+        for file_or_folder in os.listdir(folder):
+            sub_path = os.path.join(folder, file_or_folder)
+            if os.path.isfile(sub_path):
+                file_num += 1
+            elif os.path.isdir(sub_path):
+                folder_queue.put_nowait(sub_path)
+    return file_num
+

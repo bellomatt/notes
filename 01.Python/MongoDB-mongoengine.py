@@ -21,6 +21,11 @@ mongoengine 提供对 MongoDB 的 ORM 操作
     connect('数据库名', host='mongodb://localhost:27017/数据库名')
     connect('数据库名', host='mongodb://用户名:密码@10.0.0.90:27017/数据库名?authSource=admin')
 
+    # 密码特殊符号的坑,由于连接字符串是拼接形式，所以特殊符号需要编码后拼接进去
+    from urllib.parse import quote
+    connect('数据库名', host=f'mongodb://{用户名}:{quote("密码")}@{quote("域名")}:27017/{数据库名}?authSource=admin')
+
+
 2. 定义 model
 
     import datetime
@@ -64,12 +69,16 @@ mongoengine 提供对 MongoDB 的 ORM 操作
         user = LazyReferenceField(document_type='Manager', db_field='user_id') # 外键关联,document_type指向外键对应的model,db_field指定本类字段名
         messages = ReferenceField(document_type='Message', relation_type='has_many', target_field='account') # 一对多的外键
         grades = ListField(EmbeddedDocumentField(Grade))
+        boss = ReferenceField('self')  # 引用文档自身，使用该字符串'self'代替文档类作为 ReferenceField 构造函数的参数。
 
         # 额外设置，不是必须的
         meta = {
             'db_alias': 'importer',  # db_alias用于指定model绑定的mongo连接，和connect函数中的alias对应，也可以说是 库名
             'collection': 'students', # 设置集合名称， 也可以说是 表名
             'ordering': ['-age'], # 设置默认排序方式
+            'allow_inheritance': True,  # 可以继承
+            'abstract': True,  # 抽象类
+            'strict': False,  # 严格模式。当 strict 为 True 时, save 的时候传入多余字段会报错
             'indexes': [ # 设置索引
                 'title',
                 '$title',  # 文本索引
@@ -78,46 +87,96 @@ mongoengine 提供对 MongoDB 的 ORM 操作
                 #('age', '_cls'), # cls（默认值：True） 如果您有多态模型可以继承并 allow_inheritance打开，则可以配置索引是否应该将该_cls字段自动添加到索引的开头
                 {
                     'fields': ['created'], # 要索引的字段。与上述相同的格式指定。
-                    'expireAfterSeconds': 3600 # 允许您通过设置以秒为单位的时间过期来自动将某个字段中的数据过期
-                }
-            ]
+                    'expireAfterSeconds': 3600, # 允许您通过设置以秒为单位的时间过期来自动将某个字段中的数据过期
+                },
+                {'fields': ('mobile', 'name'), 'unique': True}  # 设置 唯一、联合唯一
+            ],
+            'max_documents': 1000,  # 限制文档的数量
+            'max_size': 2000000,  # 限制文档的大小
         }
 
-  可用的字段类型如下所示:
-    BinaryField 二进制数据字段 
-    BooleanField 
-    ComplexDateTimeField 
-    DateTimeField 
-    DecimalField 
-    DictField 
-    DynamicField 
-    EmailField 
-    EmbeddedDocumentField 
-    EmbeddedDocumentListField 
-    FileField GridFS存储字段 
-    FloatField 
-    GenericEmbeddedDocumentField 
-    GenericReferenceField 
-    GenericLazyReferenceField 
-    GeoPointField 
-    ImageField 图像文件存储区域 
-    IntField 
-    ListField 
-    LineStringField 
-    MapField 
-    ObjectIdField 
-    ReferenceField 
-    LazyReferenceField 
-    SequenceField 
-    SortedListField 
-    StringField 
-    URLField 
-    UUIDField 
-    PointField 
-    PolygonField 
-    MultiPointField 
-    MultiLineStringField 
-    MultiPolygonField
+        # 文档调用 save()时，如果定义了clean，会先调用clean
+        def clean(self):
+            if self.status == 'Draft' and self.pub_date is not None:
+                msg = 'Draft entries should not have a publication date.'
+                raise ValidationError(msg)
+            # Set the pub_date for published items if not set.
+            if self.status == 'Published' and self.pub_date is None:
+                self.pub_date = datetime.now()
+
+    2.1 公共field字段选项
+        db_field: 数据库中实际的字段名称， 如果未指定，取当前的变量名称。
+        required: 是否必填
+        default: 默认值
+        null: 赋值是否可以为空
+        max_length: 最大长度(字符串用到)
+        unique: 字段在表中是否唯一
+        unique_with: 联合唯一键可以参照下面name的定义，name = StringField(unique_with="mobile")，这样可以name和mobile可以成为联合唯一键
+        choices: 可选值, 例如 name = StringField(unique_with="mobile", choices=["lisi", "wangwu"])
+        primary_key: 是否定义为主键。默认False，如果为True, 则这个字段具备唯一性，如果插入两条同样的数据，则以后面的那条数据为准，会覆盖前一条字段一样的数据。
+
+
+    2.2 可用的字段类型如下所示:
+        BinaryField # 二进制数据字段
+        BooleanField
+        ComplexDateTimeField
+        DateTimeField
+        DecimalField
+        DictField
+        DynamicField
+        EmailField
+        EmbeddedDocumentField
+        EmbeddedDocumentListField
+        FileField GridFS存储字段
+        FloatField
+        GenericEmbeddedDocumentField
+        GenericReferenceField # 允许引用任何类型的Document, 效率稍低于标准 ReferenceField
+        GenericLazyReferenceField
+        GeoPointField
+        ImageField # 图像文件存储区域
+        IntField
+        ListField
+        LineStringField
+        MapField
+        ObjectIdField
+        ReferenceField  # 会自动加载
+        LazyReferenceField  # ReferenceField 会导致性能的问题，推荐使用 LazyReferenceField
+            # LazyReferenceField 的参数 passthrough: 如果在获取某个field的时候不想 fetch, 则需要将 passthrough 设置为 True
+        SequenceField
+        SortedListField
+        StringField
+        URLField
+        UUIDField
+        PointField
+        PolygonField
+        MultiPointField
+        MultiLineStringField
+        MultiPolygonField
+   
+    2.3 reverse_delete_rule 处理引用文档的删除
+        mongoengine.DO_NOTHING = 0  # 默认值，没有任何动作。
+        mongoengine.NULLIFY = 1  # 将外键置空
+        mongoengine.CASCADE = 2  # 级联删除。引用字段被删除，则引用此字段的文档也会被删除
+        mongoengine.DENY = 3  # 如果仍存在对被删除对象的引用，则拒绝删除。
+        mongoengine.PULL = 4  # 从ListField（ReferenceField）的任何对象的字段中删除对该对象的引用（使用MongoDB的“拉”操作 ）。
+
+        现在设置成除DO_NOTHING之外的其他值，保存的时候会报错：
+        例如如果设置成 new_company = ReferenceField(document_type="Company", reverse_delete_rule=mongoengine.NULLIFY)
+        则会报下面的错误
+            mongoengine.errors.ValidationError: ValidationError (User:None) (A ReferenceField only accepts DBRef, LazyReference, ObjectId or documents: ['new_company'])
+
+        可以选择注册的方式来实现：
+        class Company(ResourceDocument):
+            name = StringField()
+
+        class User(ResourceDocument):
+            name = StringField()
+            mobile = StringField()
+            new_company = ReferenceField(document_type="Company", db_field="new_company_id")
+
+        # 在程序启动的时候注册级联删除规则
+        Company.register_delete_rule(User, 'new_company', NULLIFY)
+
 
 3. 创建对象
 
@@ -287,7 +346,7 @@ mongoengine 提供对 MongoDB 的 ORM 操作
     __lt  # 小于
     __lte  # 小于等于
     __in  # 存在于一个list范围内
-    __nin  # 值不在列表中
+    __nin  # 值不在列表中(索引不会生效，全表扫描)
     __startswith  # 以…开头
     __istartswith  # 以…开头 忽略大小写
     __endswith  # 以…结尾

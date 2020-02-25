@@ -35,7 +35,7 @@
         11. git push origin master # 推送代码到服务器
             git push --force origin myfeature # rebase 后，分支不能正常推时，需要强推上去
         12. git log  # 查看log
-		13. git fetch origin <远程分支名称>:<本地分支名称>  # 在本地新建分支x，但是不会自动切换到该本地分支x，需要手动checkout
+        13. git fetch origin <远程分支名称>:<本地分支名称>  # 在本地新建分支x，但是不会自动切换到该本地分支x，需要手动checkout
 
     常用命令：
         $ git init   # 初始化 git 仓库(需要先进入到仓库目录)
@@ -328,6 +328,21 @@
 
                 重新打开git bash即可，无需再输入用户名和密码
 
+       4) 在.ssh目录下创建config文本文件并完成相关配置
+            配置一个Host，Host要取一个别名，Host主要配置HostName和IdentityFile两个属性即可
+            Host的名字可以取为自己喜欢的名字，不过这个会影响git相关命令，
+                例如：Host mygithub 这样定义的话，命令如下，即git@后面紧跟的名字改为mygithub，例如：git clone git@mygithub:xxx/****.git
+            HostName 　　　　　　　   这个是真实的域名地址
+            IdentityFile 　　　　　　　  这里是id_rsa的地址
+            PreferredAuthentications    配置登录时用什么权限认证--可设为publickey,password publickey,keyboard-interactive等  
+            User 　　　　　　　　　　   配置使用用户名
+
+            配置如下：
+                Host mygithub  # 用 mygithub 代替 github.com
+                    HostName github.com
+                    IdentityFile /data/program/id_rsa
+                    PreferredAuthentications publickey 
+                    User holemar
 
 四、Git Server
     建立一个 Git 代码共享仓库服务器。

@@ -15,14 +15,30 @@ from Crypto.Cipher import AES
 from Crypto import Random
 
 bs = AES.block_size
-pad = lambda s: s + (bs - len(s) % bs) * chr(bs - len(s) % bs)
 # 定义向量 iv
 IV = [200, 90, 200, 144, 210, 109, 121, 45, 153, 144, 236, 208, 235, 133, 119, 152]
 iv2 = ''.join([chr(i) for i in IV])
 
-
 system_encoding = "utf-8"
 defaultencoding = sys.getdefaultencoding()
+
+PY2 = sys.version_info[0] == 2
+PY3 = sys.version_info[0] == 3
+if PY3:
+    basestring = unicode = str
+
+
+def pad(s):
+    if PY3:
+        s = s.encode()
+    # return s + (bs - len(s) % bs) * chr(bs - len(s) % bs)
+    return s + (bs - len(s) % bs) * b'\x00'
+
+
+def unpad(s):
+    if PY3:
+        s = s.decode()
+    return s[0:-ord(s[-1])]
 
 
 def to_str(text):
@@ -31,22 +47,27 @@ def to_str(text):
     :param {string} text: 原字符串
     :return {string}: 返回转换后的字符串
     """
+    if PY3:
+        return text
     try:
         # py2 的处理
-        encoding_tuple = ("gbk", "big5", defaultencoding) if defaultencoding and isinstance(defaultencoding, basestring) else ("gbk", "big5")
+        if defaultencoding and isinstance(defaultencoding, basestring):
+            encoding_tuple = ("gbk", "big5", defaultencoding)
+        else:
+            encoding_tuple = ("gbk", "big5")
         if isinstance(text, unicode):
             return text.encode(system_encoding)
         elif isinstance(text, str):
             try:
                 text.decode(system_encoding)
-                return text # 如果上面这句执行没报异常，说明是 utf-8 编码，不用再转换
+                return text  # 如果上面这句执行没报异常，说明是 utf-8 编码，不用再转换
             except:
                 pass
             for encoding in encoding_tuple:
                 try:
                     text = text.decode(encoding)
                     return text.encode(system_encoding)
-                    break # 如果上面这句执行没报异常，说明是这种编码
+                    break  # 如果上面这句执行没报异常，说明是这种编码
                 except:
                     pass
         return str(text)
@@ -67,7 +88,7 @@ def encryptData(data, key):
     if not key:
         raise RuntimeError(u'缺少加密的key!')
     data = to_str(data)
-    #iv = iv2
+    # iv = iv2
     iv = Random.new().read(bs)
     cipher = AES.new(key, AES.MODE_CBC, iv)
     data = cipher.encrypt(pad(data))
@@ -88,20 +109,19 @@ def decryptData(data, key):
         raise RuntimeError(u'缺少解密的key!')
     try:
         data = base64.b64decode(data)
-    except: # base64 解码异常，很可能传来的是明文，直接返回
+    except:  # base64 解码异常，很可能传来的是明文，直接返回
         return data
     if len(data) <= bs:
         return data
-    unpad = lambda s : s[0:-ord(s[-1])]
     iv = data[:bs]
     cipher = AES.new(key, AES.MODE_CBC, iv)
-    data  = unpad(cipher.decrypt(data[bs:]))
+    data = unpad(cipher.decrypt(data[bs:]))
     return data
 
 
 if __name__ == '__main__':
-    cleartext = u"This is a test with several blocks!中文坎坎坷坷吞吞吐吐yy语音男男女女" # 加密、解密的字符串
-    key = 'fgjtjirj4o234234' # 必须16、24、32 位
+    cleartext = u"This is a test with several blocks!中文坎坎坷坷吞吞吐吐yy语音男男女女"  # 加密、解密的字符串
+    key = 'fgjtjirj4o234234'  # 必须16、24、32 位
 
     encrypt_data = encryptData(cleartext, key)
     print('encrypt_data:')
@@ -110,4 +130,3 @@ if __name__ == '__main__':
     decrypt_data = decryptData(encrypt_data, key)
     print('decrypt_data:')
     print(decrypt_data)
-

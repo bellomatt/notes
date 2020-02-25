@@ -30,9 +30,10 @@ Decorator(装饰器)
     def timeit(func):
         def wrapper(*args, **kwargs):
             start = time.time()
-            func(*args, **kwargs)
+            result = func(*args, **kwargs)
             end = time.time()
             print( 'used:' + str(end - start) )
+            return result
         return wrapper
 
     @timeit

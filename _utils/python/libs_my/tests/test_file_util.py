@@ -24,20 +24,23 @@ class TestFileUtil(unittest.TestCase):
         """初始化"""
         super(TestFileUtil, self).setUp()
 
-        os.popen('echo.> "%s"' % tem_file) # 首行是空行，且清空文件旧内容
+        # 首行是空行，且清空文件旧内容
+        f = open(tem_file, mode="w")
+        f.write('\n')
         for line in tem_lines:
             # 处理空行
             if not line:
-                os.popen('echo.>> "%s"' % tem_file)
+                f.write('\n')
             else:
-                os.popen('echo %s>> "%s"' % (line, tem_file))
-        os.popen('echo"">> "%s"' % tem_file) # 末行是空行
+                f.write(line)
+                f.write('\n')
+        else:
+            f.close()
 
     def tearDown(self):
         """销毁"""
         # 删除测试文件
-        os.popen('del /q /f "%s"' % tem_file)
-
+        remove(tem_file)
         super(TestFileUtil, self).tearDown()
 
 
@@ -114,6 +117,14 @@ class TestFileUtil(unittest.TestCase):
 
         # 删除下载的文件
         os.popen('del /q /f "%s"' % file_path)
+
+    def test_file_quantity(self):
+        logging.info(u'测试 计算目录的总文件数')
+
+        num = file_quantity(os.getcwd())
+        num2 = get_file_quantity(os.getcwd())
+        self.assertTrue(num > 2)
+        self.assertEqual(num, num2)
 
 
 if __name__ == "__main__":
