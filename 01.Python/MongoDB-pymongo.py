@@ -22,6 +22,7 @@ pymongo 提供原生的 MongoDB 操作
     db = conn.test # 进入指定名称的数据库
     users = db.users # 获取数据库里的 users 集合
     users = db['users'] # 获取数据库里的 users 集合,也可以用字典来获取
+    # users = db.getCollection('users')  # 这写法会报错，没有 getCollection 函数
 
   2. 插入
     u = dict(name = "user1", age = 23)
