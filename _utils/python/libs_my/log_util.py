@@ -96,7 +96,7 @@ class StringFilter(logging.Filter):
                     try:
                         msg = msg % str_util.deep_str(record.args, max=max_args, str_unicode=str_util.to_str)
                         record.args = ()
-                    except TypeError, e:
+                    except TypeError as e:
                         error_msg = change_color(u'[red]日志参数传递错误[/red], %s, 参数:%s')
                         logging.error(error_msg, msg, record.args, exc_info=True)
                         return False # 报异常就别再打印此日志了

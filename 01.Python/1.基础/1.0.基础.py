@@ -548,9 +548,9 @@ lambda 形式
 
 
 exec 和 eval
+    eval()函数只能计算单个表达式的值，而 exec()函数可以动态运行代码段。
+    eval()函数可以有返回值，而 exec()函数返回值永远为 None。
     exec 用来执行储存在字符串或文件中的Python语句。
-    eval 用来计算存储在字符串中的有效Python表达式。
-    exec 跟 eval 是相似的，但是 exec 更加强大并更具有技巧性。
     eval 只能执行单独一条表达式；但是 exec 能够执行多条语句，导入(import)，函数声明
     实际上 exec 能执行整个Python程序的字符串。
 
