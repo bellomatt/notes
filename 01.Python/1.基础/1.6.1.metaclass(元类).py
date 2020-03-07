@@ -430,22 +430,31 @@ __metaclass__ 属性
 
 范例(各函数的执行顺序)
     class ConstType(type):
-        """给配置加载项自动加上db_field属性"""
+        """生成 Class类 的构造器"""
 
         def __new__(mcs, name, bases, attrs):
-            print('... 2. metaclass __new__ ...', mcs, name, bases, attrs)
-            obj = type.__new__(mcs, name, bases, attrs)
-            return obj
+            """本元类的 __new__ 会先于 __init__ 执行
+            返回本类的实例，也是 Class类 的构造类型。且返回的结果将传给 本元类的 __init__ 及 __call__
+            """
+            print('... 2.1. metaclass __new__ ...', mcs, id(mcs), name, bases, attrs)
+            meta_cls = type.__new__(mcs, name, bases, attrs)  # 返回一个类，而不是类实例
+            print('... 2.2. metaclass __new__ ...', meta_cls, type(meta_cls), id(meta_cls))
+            return meta_cls
 
         def __init__(cls, *args, **kwargs):
-            print('... 3. metaclass __init__ ...', cls, args, kwargs)
+            """这函数等 __new__ 执行完再执行，且接收的参数 cls 是 metaclass __new__ 的返回值"""
+            print('... 3.1. metaclass __init__ ...', cls, type(cls), id(cls), args, kwargs)
             super(ConstType, cls).__init__(*args, **kwargs)
 
-        # 每次 new MyClass类 时都会执行， 且首参数 cls 是 MyClass类 而不是 MyClass类实例(因为这是元类)。
         def __call__(cls, *args, **kwargs):
-            print('... 4. metaclass __call__ ...', cls, args, kwargs)
-            return super(ConstType, cls).__call__(*args, **kwargs)
-
+            """每次 new Class类 时都会执行， 且首参数 cls 是 Class类(本元类的 __new__ 的返回值) 而不是 Class类实例(因为这是元类)
+            这函数的返回值，是个 Class类实例，将作为 new 一个 Class类的返回实例。
+            """
+            print('... 4.1. metaclass __call__ ...', cls, type(cls), id(cls), args, kwargs)
+            obj = super(ConstType, cls).__call__(*args, **kwargs)  # 这将执行 Class类 的 __new__ 及 __init__
+            # 返回的 obj 实际上由 Class类的 __new__ 生成
+            print('... 4.2. metaclass __call__ ...', obj, type(obj), id(obj))
+            return obj
 
     """
     # 由于py2及py3的使用元类写法不一致，这里为了兼容且不引起编译报错，改用统一写法
@@ -459,24 +468,29 @@ __metaclass__ 属性
     Const = ConstType('Const', (object,), {})  # 这里会触发一次构造 Const 类的 metaclass __new__
     print('------- 1 -----')
 
-
     class Person(Const):
         name = 'person'
         print('... 1. load class attribute ...')
 
         def __new__(cls, *args, **kwargs):
-            print('... 5. class __new__ ...', cls, args, kwargs)
-            return super(Person, cls).__new__(cls)
+            """本类的 __new__ 会先于 __init__ 执行
+            返回本类的实例。且返回的结果将传给 本类的 __init__ 及 __call__
+            """
+            print('... 5.1. class __new__ ...', cls, type(cls), id(cls), args, kwargs)
+            obj = super(Person, cls).__new__(cls)  # 返回一个本类的实例
+            print('... 5.2. class __new__ ...', obj, type(obj), id(obj))
+            return obj
 
         def __init__(self, *args, **kwargs):
-            print('... 6. class __init__ ...', self, args, kwargs)
+            """这函数等 __new__ 执行完再执行，且接收的参数 self 是 本类的 __new__ 的返回值"""
+            print('... 6. class __init__ ...', self, type(self), id(self), args, kwargs)
             self.name = args[0]
             super(Person, self).__init__()
 
         def __call__(self, *args, **kwargs):
-            print('... 7. class __call__ ...', self, args, kwargs)
+            """本类的实例被调用时触发"""
+            print('... 7. class __call__ ...', self, type(self), id(self), args, kwargs)
             return self.name
-
 
     # 此前，类的加载依次是 load class attribute、metaclass __new__、metaclass __init__
     print('------- 2 -----')
@@ -484,7 +498,7 @@ __metaclass__ 属性
     print('------- 3 -----')
 
     person = Person('teacher 1')  # 这里依次调用 metaclass __call__、class __new__、class __init__。 返回值 p 是由 metaclass __call__ 返回
-	# 由于这里的 Person() 返回值是由 metaclass __call__ 返回，所以单例模式由 metaclass __call__ 实现。
+    # 由于这里的 Person() 返回值是由 metaclass __call__ 返回，所以单例模式由 metaclass __call__ 实现。
     print('------- 4 -----')
     person('student 1')
     print('------- 5 -----')
@@ -492,23 +506,31 @@ __metaclass__ 属性
     person2('student 2')
 
     """ 打印结果如下，可以看出各个函数的执行顺序及参数传递
-    ... 2. metaclass __new__ ... <class '__main__.ConstType'> Const (<class 'object'>,) {}
+    ... 2.1. metaclass __new__ ... <class '__main__.ConstType'> 140668374627912 Const (<class 'object'>,) {}
+    ... 2.2. metaclass __new__ ... <class '__main__.Const'> <class '__main__.ConstType'> 140668374629992
+    ... 3.1. metaclass __init__ ... <class '__main__.Const'> <class '__main__.ConstType'> 140668374629992 ('Const', (<class 'object'>,), {}) {}
     ------- 1 -----
     ... 1. load class attribute ...
-    ... 2. metaclass __new__ ... <class '__main__.ConstType'> Person (<class '__main__.Const'>,) {'__module__': '__main__', '__qualname__': 'Person', 'name': 'person', '__new__': <function Person.__new__ at 0x109f18e18>, '__init__': <function Person.__init__ at 0x109f18ea0>, '__call__': <function Person.__call__ at 0x109f18f28>, '__classcell__': <cell at 0x109ee2768: empty>}
+    ... 2.1. metaclass __new__ ... <class '__main__.ConstType'> 140668374627912 Person (<class '__main__.Const'>,) {'__module__': '__main__', '__qualname__': 'Person', 'name': 'person', '__new__': <function Person.__new__ at 0x1060d2ea0>, '__init__': <function Person.__init__ at 0x1060d2f28>, '__call__': <function Person.__call__ at 0x106144048>, '__classcell__': <cell at 0x10609c798: empty>}
+    ... 2.2. metaclass __new__ ... <class '__main__.Person'> <class '__main__.ConstType'> 140668374630920
+    ... 3.1. metaclass __init__ ... <class '__main__.Person'> <class '__main__.ConstType'> 140668374630920 ('Person', (<class '__main__.Const'>,), {'__module__': '__main__', '__qualname__': 'Person', 'name': 'person', '__new__': <function Person.__new__ at 0x1060d2ea0>, '__init__': <function Person.__init__ at 0x1060d2f28>, '__call__': <function Person.__call__ at 0x106144048>, '__classcell__': <cell at 0x10609c798: ConstType object at 0x7fefe8804208>}) {}
     ------- 2 -----
     person
     ------- 3 -----
-    ... 3. metaclass __call__ ... <class '__main__.Person'> ('teacher 1',) {}
-    ... 4. class __new__ ... <class '__main__.Person'> ('teacher 1',) {}
-    ... 5. class __init__ ... <__main__.Person object at 0x109fa36a0> ('teacher 1',) {}
+    ... 4.1. metaclass __call__ ... <class '__main__.Person'> <class '__main__.ConstType'> 140668374630920 ('teacher 1',) {}
+    ... 5.1. class __new__ ... <class '__main__.Person'> <class '__main__.ConstType'> 140668374630920 ('teacher 1',) {}
+    ... 5.2. class __new__ ... <__main__.Person object at 0x10616b710> <class '__main__.Person'> 4397119248
+    ... 6. class __init__ ... <__main__.Person object at 0x10616b710> <class '__main__.Person'> 4397119248 ('teacher 1',) {}
+    ... 4.2. metaclass __call__ ... <__main__.Person object at 0x10616b710> <class '__main__.Person'> 4397119248
     ------- 4 -----
-    ... 6. class __call__ ... <__main__.Person object at 0x109fa36a0> ('student 1',) {}
+    ... 7. class __call__ ... <__main__.Person object at 0x10616b710> <class '__main__.Person'> 4397119248 ('student 1',) {}
     ------- 5 -----
-    ... 3. metaclass __call__ ... <class '__main__.Person'> ('teacher 2',) {}
-    ... 4. class __new__ ... <class '__main__.Person'> ('teacher 2',) {}
-    ... 5. class __init__ ... <__main__.Person object at 0x109fa36d8> ('teacher 2',) {}
-    ... 6. class __call__ ... <__main__.Person object at 0x109fa36d8> ('student 2',) {}
+    ... 4.1. metaclass __call__ ... <class '__main__.Person'> <class '__main__.ConstType'> 140668374630920 ('teacher 2',) {}
+    ... 5.1. class __new__ ... <class '__main__.Person'> <class '__main__.ConstType'> 140668374630920 ('teacher 2',) {}
+    ... 5.2. class __new__ ... <__main__.Person object at 0x10616b748> <class '__main__.Person'> 4397119304
+    ... 6. class __init__ ... <__main__.Person object at 0x10616b748> <class '__main__.Person'> 4397119304 ('teacher 2',) {}
+    ... 4.2. metaclass __call__ ... <__main__.Person object at 0x10616b748> <class '__main__.Person'> 4397119304
+    ... 7. class __call__ ... <__main__.Person object at 0x10616b748> <class '__main__.Person'> 4397119304 ('student 2',) {}
     """
 
 
