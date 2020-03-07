@@ -427,3 +427,88 @@ __metaclass__ 属性
     class MyClass(object, metaclass = Singleton):
         pass
 
+
+范例(各函数的执行顺序)
+    class ConstType(type):
+        """给配置加载项自动加上db_field属性"""
+
+        def __new__(mcs, name, bases, attrs):
+            print('... 2. metaclass __new__ ...', mcs, name, bases, attrs)
+            obj = type.__new__(mcs, name, bases, attrs)
+            return obj
+
+        def __init__(cls, *args, **kwargs):
+            print('... 3. metaclass __init__ ...', cls, args, kwargs)
+            super(ConstType, cls).__init__(*args, **kwargs)
+
+        # 每次 new MyClass类 时都会执行， 且首参数 cls 是 MyClass类 而不是 MyClass类实例(因为这是元类)。
+        def __call__(cls, *args, **kwargs):
+            print('... 4. metaclass __call__ ...', cls, args, kwargs)
+            return super(ConstType, cls).__call__(*args, **kwargs)
+
+
+    """
+    # 由于py2及py3的使用元类写法不一致，这里为了兼容且不引起编译报错，改用统一写法
+    if PY2:
+        class Const(object):
+            __metaclass__ = ConstType
+    elif PY3:
+        class Const(object, metaclass=ConstType):  # 这样写，py2编译时会报错。
+            pass
+    """
+    Const = ConstType('Const', (object,), {})  # 这里会触发一次构造 Const 类的 metaclass __new__
+    print('------- 1 -----')
+
+
+    class Person(Const):
+        name = 'person'
+        print('... 1. load class attribute ...')
+
+        def __new__(cls, *args, **kwargs):
+            print('... 5. class __new__ ...', cls, args, kwargs)
+            return super(Person, cls).__new__(cls)
+
+        def __init__(self, *args, **kwargs):
+            print('... 6. class __init__ ...', self, args, kwargs)
+            self.name = args[0]
+            super(Person, self).__init__()
+
+        def __call__(self, *args, **kwargs):
+            print('... 7. class __call__ ...', self, args, kwargs)
+            return self.name
+
+
+    # 此前，类的加载依次是 load class attribute、metaclass __new__、metaclass __init__
+    print('------- 2 -----')
+    print(Person.name)
+    print('------- 3 -----')
+
+    person = Person('teacher 1')  # 这里依次调用 metaclass __call__、class __new__、class __init__。 返回值 p 是由 metaclass __call__ 返回
+	# 由于这里的 Person() 返回值是由 metaclass __call__ 返回，所以单例模式由 metaclass __call__ 实现。
+    print('------- 4 -----')
+    person('student 1')
+    print('------- 5 -----')
+    person2 = Person('teacher 2')
+    person2('student 2')
+
+    """ 打印结果如下，可以看出各个函数的执行顺序及参数传递
+    ... 2. metaclass __new__ ... <class '__main__.ConstType'> Const (<class 'object'>,) {}
+    ------- 1 -----
+    ... 1. load class attribute ...
+    ... 2. metaclass __new__ ... <class '__main__.ConstType'> Person (<class '__main__.Const'>,) {'__module__': '__main__', '__qualname__': 'Person', 'name': 'person', '__new__': <function Person.__new__ at 0x109f18e18>, '__init__': <function Person.__init__ at 0x109f18ea0>, '__call__': <function Person.__call__ at 0x109f18f28>, '__classcell__': <cell at 0x109ee2768: empty>}
+    ------- 2 -----
+    person
+    ------- 3 -----
+    ... 3. metaclass __call__ ... <class '__main__.Person'> ('teacher 1',) {}
+    ... 4. class __new__ ... <class '__main__.Person'> ('teacher 1',) {}
+    ... 5. class __init__ ... <__main__.Person object at 0x109fa36a0> ('teacher 1',) {}
+    ------- 4 -----
+    ... 6. class __call__ ... <__main__.Person object at 0x109fa36a0> ('student 1',) {}
+    ------- 5 -----
+    ... 3. metaclass __call__ ... <class '__main__.Person'> ('teacher 2',) {}
+    ... 4. class __new__ ... <class '__main__.Person'> ('teacher 2',) {}
+    ... 5. class __init__ ... <__main__.Person object at 0x109fa36d8> ('teacher 2',) {}
+    ... 6. class __call__ ... <__main__.Person object at 0x109fa36d8> ('student 2',) {}
+    """
+
+
