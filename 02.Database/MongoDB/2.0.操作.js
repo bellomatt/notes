@@ -406,6 +406,18 @@ mongo 是 MongoDB 自带的交互式 Javascript shell，用来对 Mongod 进行�
     { "_id" : 7, "name" : "name7", "t" : 2 }
     */
 
+  (12) 字段参与的更新
+	// find 是搜索条件，使用 forEach 来动态修改每一条搜索到的内容
+	db.collection_name.find({"_id" : ObjectId("5d60ac1366aadbbbfdec8b7a")}).forEach(
+		function(item){
+			db.collection_name.update(
+				{"_id":item._id},
+				// 将 tasktypeIds字段 值更新为 mainTasktypeId、subTasktypeId、subRelTasktypeId 三个字段用下划线拼接而成的新值(字段拼接得注意类型异常)
+				{ $set : { "tasktypeIds" : item.mainTasktypeId + "_" + item.subTasktypeId + "_" + item.subRelTasktypeId }}
+			)
+		})
+
+	
 
 三、使用命令范例
 (1) MongoDB 会自动创建数据库(db)和集合(collection)，无需显式执行。

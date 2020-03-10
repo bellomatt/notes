@@ -188,3 +188,52 @@ options 操作符
         {$project: { count: 1,  qty: 1, 日期: { $toUpper: "$_id" }, _id: 0 } }
     ])
 
+
+# 删除重复的数据
+    # mongo3x的版本
+    db.Passages.aggregate([
+        {$group:{
+            _id:{content:'$content',endTime:'$endTime',startTime:'$startTime'},
+            count:{$sum:1},
+            dups:{$addToSet:'$_id'}}
+        },
+        {$match:{count:{$gt:1}}}
+    ]).forEach(function(it){
+        it.dups.shift();
+        db.Passages.remove({_id: {$in: it.dups}});
+    });
+
+    # 解析：
+    使用aggregate聚合查询重复数据
+        $group中是查询条件，根据content、endTime、startTime字段来聚合相同的数据；
+        $count用来统计重复出现的次数， $match来过滤没有重复的数据；
+        $addToSet将聚合的数据id放入到dups数组中方便后面使用；
+    查询结果使用forEach进行迭代id来删除数据
+        shift()作用是剔除队列中第一条id，避免删掉所有的数据；
+    PS:注意函数的大小写，mongoDB是严格区分大小写的！！！
+
+    # mongo2.4x + mongo3x 的版本兼容
+    # 2.4x版本的数据是放在reslut字段下的，而3.x是放在`_batch`字段下(至于为什么可以直接forEach有待研究)
+    var list = db.Passages.aggregate([
+        {$group:{
+            _id:{content:'$content',endTime:'$endTime',startTime:'$startTime'},
+            count:{$sum:1},
+            dups:{$addToSet:'$_id'}}
+        },
+        {$match:{count:{$gt:1}}}
+    ]);
+    if (list._batch!=undefined) {
+        // print('v3.4....')
+        list.forEach(function(it){
+            it.dups.shift();
+            db.Passages.remove({_id: {$in: it.dups}});
+        });
+    } else {
+        // print('v.2.4....')
+        list.result.forEach(function(it) {
+            it.dups.shift();
+            db.Passages.remove({_id: {$in: it.dups}});
+        });
+    }
+
+
