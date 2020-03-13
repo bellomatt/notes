@@ -19,7 +19,7 @@ import gzip, zlib
 from hashlib import md5
 
 try:
-    import StringIO
+    from StringIO import StringIO
 except:
     from io import StringIO
 
@@ -266,7 +266,7 @@ def gzip_encode(content):
     """
     if not isinstance(content, basestring):
         content = json2str(content)
-    zbuf = StringIO.StringIO()
+    zbuf = StringIO()
     zfile = gzip.GzipFile(mode='wb', compresslevel=9, fileobj=zbuf)
     zfile.write(content)
     zfile.close()
@@ -279,7 +279,7 @@ def gzip_decode(content):
     :param {string} content: 压缩后的字符串
     :return {string}: 解压出来的明文字符串
     """
-    zfile = gzip.GzipFile(fileobj=StringIO.StringIO(content))
+    zfile = gzip.GzipFile(fileobj=StringIO(content))
     result = zfile.read()
     zfile.close()
     return result
@@ -347,6 +347,8 @@ def is_mobile(phone, **kwargs):
     if not isinstance(phone, basestring):
         if isinstance(phone, (int, long)):
             phone = str(phone)
+        elif isinstance(phone, float):
+            phone = str(int(phone))
         else:
             return False
     if not phone.isdigit() or len(phone) != 11:

@@ -8,12 +8,22 @@ Updated on 2019/1/18
 本模块专门处理文件用
 """
 import os
-import queue
-import urllib
-import urllib2
 import logging
+import datetime
 
-__all__ = ('get_first_lines', 'get_last_lines', 'remove', 'clear', 'download_file', 'file_quantity', 'get_file_quantity')
+try:
+    # py3
+    from queue import Queue
+    from urllib.request import urlretrieve
+    from urllib.request import URLError as HTTPError
+except:
+    # py2
+    from Queue import Queue
+    from urllib import urlretrieve
+    from urllib2 import HTTPError
+
+__all__ = ('get_first_lines', 'get_last_lines', 'remove', 'clear', 'download_file', 'file_quantity',
+           'get_file_quantity', 'file_update_dt')
 
 try:
     long
@@ -33,7 +43,7 @@ def get_first_lines(file_path, num=1, include_blank=False):
 
     n_lines = []
     with open(file_path) as fp:
-        #n_lines = fp.readlines(num) # 为了便于去掉空行，改成逐行读取
+        # n_lines = fp.readlines(num) # 为了便于去掉空行，改成逐行读取
         for line in fp:
             if len(n_lines) >= num: break
             if line:
@@ -44,7 +54,7 @@ def get_first_lines(file_path, num=1, include_blank=False):
                         continue
                     n_lines.append(line)
                 else:
-                    n_lines.append(line.rstrip()) # 去掉最后边的换行符
+                    n_lines.append(line.rstrip())  # 去掉最后边的换行符
     # 返回内容
     if num == 1 and len(n_lines) == 1:
         return n_lines[0]
@@ -91,7 +101,7 @@ def get_last_lines(file_path, num=1, include_blank=False):
     if not include_blank:
         n_lines[:] = [r.strip() for r in n_lines if r.strip()]
     else:
-        n_lines[:] = [r.rstrip() for r in n_lines] # 去掉最后边的换行符
+        n_lines[:] = [r.rstrip() for r in n_lines]  # 去掉最后边的换行符
     # 最后一行如果是空值，则删掉
     if len(n_lines) > 0 and len(n_lines[-1]) == 0:
         del n_lines[-1]
@@ -110,9 +120,20 @@ def remove(file_path):
     file_path = os.path.abspath(file_path)
     if os.path.isfile(file_path):
         try:
-            os.remove(file_path) # 不知道什么原因，这句会报错
+            os.remove(file_path)  # 不知道什么原因，这句会报错
+            return True
         except:
+            pass
+        try:
             os.popen('del /q /f "%s"' % file_path)
+            return True
+        except:
+            pass
+        try:
+            os.popen('rm -f "%s"' % file_path)
+            return True
+        except:
+            pass
 
 
 def clear(file_path):
@@ -135,17 +156,17 @@ def download_file(url, file_path):
     :param {string} file_path: 要下载到本地的文件名(包含目录+文件名的路径)
     """
     try:
-        remove(file_path) # 先删除旧文件
+        remove(file_path)  # 先删除旧文件
         file_dir = os.path.dirname(file_path)
         # 没有文件的目录，则先创建目录，避免因此报错
         if not os.path.isdir(file_dir):
             os.makedirs(file_dir)
         # 文件下载
-        urllib.urlretrieve(url, file_path)
-    except urllib2.HTTPError as e:
+        urlretrieve(url, file_path)
+    except HTTPError as e:
         status_code = e.code
         res = e.read()
-        logging.error("文件下载失败, 返回码:%s, 返回内容:%s" , status_code, res, exc_info=True)
+        logging.error("文件下载失败, 返回码:%s, 返回内容:%s", status_code, res, exc_info=True)
 
 
 def file_quantity(path):
@@ -168,7 +189,7 @@ def get_file_quantity(folder):
     # 判断初始文件夹
     assert os.path.isdir(folder), '请输入有效的文件夹参数'
     file_num = 0  # 初始化文件数量
-    folder_queue = queue.Queue()
+    folder_queue = Queue()
     folder_queue.put_nowait(folder)  # 初始化队列的值
     # 处理队列里的文件夹
     while not folder_queue.empty():
@@ -181,3 +202,12 @@ def get_file_quantity(folder):
                 folder_queue.put_nowait(sub_path)
     return file_num
 
+
+def file_update_dt(file_path):
+    """获取文件的最后更新时间
+    :param file_path:文件路径
+    """
+    create_time = os.path.getctime(file_path)  # 文件的创建时间
+    modify_time = os.path.getmtime(file_path)  # 文件的修改时间
+    file_time = max(create_time, modify_time)  # 选一个最新的时间为文件更新时间
+    return datetime.datetime.fromtimestamp(file_time)

@@ -14,6 +14,7 @@ Updated on 2019/1/18
     xlwings==0.11.7
 """
 import os
+import sys
 import types
 import time
 import datetime
@@ -28,13 +29,26 @@ import openpyxl
 from .str_util import to_str, to_unicode
 from .file_util import download_file, remove
 
-try:
-    import cStringIO as StringIO
-except:
-    import StringIO
+PY2 = sys.version_info[0] == 2
+PY3 = sys.version_info[0] == 3
+if PY2:
+    try:
+        from cStringIO import StringIO
+    except:
+        from StringIO import StringIO
+elif PY3:
+    from io import StringIO
+    basestring = unicode = str
+    long = int
+
+__all__ = ('ExcelExport', 'excel_reader', 'excel_abstract')
 
 
-__all__=('ExcelExport', 'excel_reader', 'excel_abstract')
+def is_excel(file_path):
+    """判定文件是否Excel"""
+    _, ext = os.path.splitext(file_path)
+    ext = ext.lower()[1:]
+    return ext in ['xls', 'xlsx', 'xlt', 'xltx', 'xlsm', 'xltm', 'csv']
 
 
 def get_object_value(obj, code, default=None):
@@ -73,9 +87,66 @@ def try_float(value):
 class ExcelExport(object):
     """
     导出 Excel 的基类
+
+    使用范例：
+    class MyExport(excel_util.ExcelExport):
+
+        def add_sheets(self):
+            # 多个标签页，可以多次 add_worksheet 生成
+            worksheet = self.workbook.add_worksheet('员工信息')  # 参数是sheet名，不写默认用 Sheet1、Sheet2 等等
+            worksheet.merge_range("A1:K3", 'XX公司员工信息表', self.title_format)
+            # 固定前4行，前2列
+            worksheet.freeze_panes('B6')
+
+            # 指定表头行有两行(大表头、小表头)。不是从第一行开始的话，得指定开始行。
+            self.set_options(worksheet, head_row=2, first_row=3, first_col=0, head_format=self.head_format)
+
+            # 下面指定各列的内容及格式
+            self.set_table_col(worksheet, parent_head='序号', child_list={'type':'index', 'width':5})
+            # 大表头下，可以有多个小表头，各个小表头独立指定自己的列
+            self.set_table_col(worksheet, parent_head='基础信息', child_list=[
+                # code 除了指定key名，还可以指定函数
+                {'head':'工号', 'code':lambda o:int(o.get('no')), 'width':12, 'format':self.left_content},
+                {'head':'入职时间', 'code':'register_dt', 'format':self.time_format, 'width':20},
+            ])
+            # 为了表格更美观，可以指定没有内容的空列，分隔数据
+            self.set_table_col(worksheet, parent_head='', child_list={'code':'', 'width':3})
+            # 表头占两行的列
+            self.set_table_col(worksheet, parent_head='姓名', child_list={'code': 'emp_name', 'width':10})
+            self.set_table_col(worksheet, parent_head='部门', child_list={'code': 'dep_name', 'width':14})
+            self.set_table_col(worksheet, parent_head='岗位', child_list={'code': 'job_title_name', 'width':14})
+            # 大小表头
+            self.set_table_col(worksheet, parent_head='企业信息', child_list=[
+                {'head':'上班天数', 'code':'use_days', 'width':12, 'format':self.int_format},
+                {'head':'是否管理员', 'code':'is_admin', 'width':10, 'format':self.left_content},
+                {'head':'社保公积金', 'code':'ins_status', 'width':10, 'format':self.left_content},
+                {'head':'薪酬', 'code':'salary_status', 'width':6, 'type':'sum'},
+            ])
+
+            # 写入数据
+            self.write_table_data(worksheet, add_sum_line=True)
+
+            # 审核信息
+            last_row = self.get_last_row_index(worksheet) + 2
+            content_format = self.workbook.add_format({'align': 'left', 'valign': 'vcenter', 'border': 0, 'bold': True})
+            worksheet.write(last_row, 0, u'制表人:%s' % self.user_name, content_format)
+            worksheet.write(last_row, 2, u'制表日期:%s' % time_util.to_string(None, time_util.DEFAULT_DATE_FORMAT), content_format)
+            worksheet.write(last_row, 4, u'复核人:', content_format)
+            worksheet.write(last_row, 6, u'复核日期:', content_format)
+            worksheet.write(last_row, 8, u'审批人:', content_format)
+            worksheet.write(last_row, 10, u'审批日期:', content_format)
+
+    # 生成Excel
+    data = [
+        {'no': 123, 'register_dt': '2012-05-07', 'emp_name': '张三', ...},
+        {'no': 423, 'register_dt': '2018-05-07', 'emp_name': '李四', ...},
+    ]
+    export_name = u'员工信息_%s' % datetime.date.today().strftime('%m%d')
+    MyExport(data=data, export_name=export_name, file_path='.')
+
     """
 
-    export_name = None # 导出的文件名(不包含文件后缀名)
+    export_name = None  # 导出的文件名(不包含文件后缀名)
 
     def __init__(self, data=[], export_name=None, file_path=None, **kwargs):
         """
@@ -89,7 +160,7 @@ class ExcelExport(object):
 
         # 保存额外参数
         if kwargs:
-            for k,v in kwargs.items():
+            for k, v in kwargs.items():
                 setattr(self, k, v)
 
         # 保存，导出的文件名
@@ -98,14 +169,14 @@ class ExcelExport(object):
 
         # 如果有文件路径，到生成文件到硬盘。没有则生成到内存
         if file_path:
-            #self.output = os.path.join(os.getcwd(), self.file_dir or 'static/export', datetime.datetime.now().strftime('%Y%m%d'), self.get_export_name())
-            #file_path = os.path.dirname(self.output)
+            # self.output = os.path.join(os.getcwd(), self.file_dir or 'static/export', datetime.datetime.now().strftime('%Y%m%d'), self.get_export_name())
+            # file_path = os.path.dirname(self.output)
             self.output = os.path.join(file_path, self.get_export_name())
             # 防止目录不存在导致异常
             if not os.path.isdir(file_path):
                 os.makedirs(file_path)
         else:
-            self.output = StringIO.StringIO() # excel放内存
+            self.output = StringIO()  # excel放内存
 
         self.workbook = xlsxwriter.Workbook(self.output)
         self.add_formats()
@@ -115,17 +186,25 @@ class ExcelExport(object):
         """
         默认的格式
         """
-        self.title_format = self.workbook.add_format({'align':'center', 'valign':'vcenter','font_size':20,'bold':True}) # 顶部大标题
-        self.head_format = self.workbook.add_format({'align':'center', 'valign':'vcenter', "bg_color": "#ebf5fa", 'border': 1}) # 表头格式
-        self.sum_format = self.workbook.add_format({'align':'center', 'valign':'vcenter', "bg_color": "#ebf5fa", 'border': 1}) # 合计行格式
-        self.left_content = self.workbook.add_format({'align':'left', 'valign':'vcenter', 'border': 1}) # 文字格式
-        self.center_content = self.workbook.add_format({'align':'center', 'valign':'vcenter', 'border': 1}) # 文字格式居中
-        self.percent_format = self.workbook.add_format({'num_format': '0.00%;[Red]-0.00%;_ * -??_ ;_ @_ ', 'border': 1}) # 比例格式
-        self.int_format = self.workbook.add_format({'num_format': '_ * #,##0_ ;_ * -#,##0_ ;_ * -??_ ;_ @_ ', 'border': 1}) # 整型格式
-        self.float_format = self.workbook.add_format({'num_format': '_ * #,##0.00_ ;_ * -#,##0.00_ ;_ * -??_ ;_ @_ ', 'border': 1})  # 浮点型格式
+        self.title_format = self.workbook.add_format(
+            {'align': 'center', 'valign': 'vcenter', 'font_size': 20, 'bold': True})  # 顶部大标题
+        self.head_format = self.workbook.add_format(
+            {'align': 'center', 'valign': 'vcenter', "bg_color": "#ebf5fa", 'border': 1})  # 表头格式
+        self.sum_format = self.workbook.add_format(
+            {'align': 'center', 'valign': 'vcenter', "bg_color": "#ebf5fa", 'border': 1})  # 合计行格式
+        self.left_content = self.workbook.add_format({'align': 'left', 'valign': 'vcenter', 'border': 1})  # 文字格式
+        self.center_content = self.workbook.add_format({'align': 'center', 'valign': 'vcenter', 'border': 1})  # 文字格式居中
+        self.percent_format = self.workbook.add_format(
+            {'num_format': '0.00%;[Red]-0.00%;_ * -??_ ;_ @_ ', 'border': 1})  # 比例格式
+        self.int_format = self.workbook.add_format(
+            {'num_format': '_ * #,##0_ ;_ * -#,##0_ ;_ * -??_ ;_ @_ ', 'border': 1})  # 整型格式
+        self.float_format = self.workbook.add_format(
+            {'num_format': '_ * #,##0.00_ ;_ * -#,##0.00_ ;_ * -??_ ;_ @_ ', 'border': 1})  # 浮点型格式
         self.money_format = self.float_format
-        self.date_format = self.workbook.add_format({'num_format': 'yyyy-m-d', 'align': 'left', 'valign':'vcenter', 'border': 1}) # 日期
-        self.time_format = self.workbook.add_format({'num_format': 'yyyy-m-d h:mm:ss', 'align': 'left', 'valign':'vcenter', 'border': 1}) # 时间
+        self.date_format = self.workbook.add_format(
+            {'num_format': 'yyyy-m-d', 'align': 'left', 'valign': 'vcenter', 'border': 1})  # 日期
+        self.time_format = self.workbook.add_format(
+            {'num_format': 'yyyy-m-d h:mm:ss', 'align': 'left', 'valign': 'vcenter', 'border': 1})  # 时间
 
     def add_sheets(self):
         raise Exception("需要重写此方法，用于生成excel：add_sheets")
@@ -136,7 +215,6 @@ class ExcelExport(object):
         """
         self.add_sheets()
         self.workbook.close()
-
 
     def get_export_name(self):
         if not self.export_name:
@@ -156,7 +234,7 @@ class ExcelExport(object):
     def close(self):
         if not self.is_close:
             self.workbook.close()
-            if isinstance(self.output, StringIO.StringIO):
+            if isinstance(self.output, StringIO):
                 self.output.close()
             del self.data
             del self.output
@@ -165,7 +243,10 @@ class ExcelExport(object):
 
     def __del__(self):
         self.close()
-        super(ExcelExport, self).__del__()
+        try:
+            super(ExcelExport, self).__del__()
+        except:
+            pass
 
     def set_options(self, worksheet, **kwargs):
         """
@@ -216,14 +297,19 @@ class ExcelExport(object):
         else:
             if len(child_list) == 1:
                 if child_list[0].get('head'):
-                    #worksheet.write(first_row, first_col, parent_head, head_format) # 无合并
-                    head_datas.append({'type':'write', "cell" : (first_row, first_col), "content":parent_head, "format":head_format, 'comment':title})
+                    # worksheet.write(first_row, first_col, parent_head, head_format) # 无合并
+                    head_datas.append(
+                        {'type': 'write', "cell": (first_row, first_col), "content": parent_head, "format": head_format,
+                         'comment': title})
                 else:
-                    #worksheet.merge_range(first_row, first_col, first_row+1, first_col, parent_head, head_format)
-                    head_datas.append({'type':'merge', 'cell' : (first_row, first_col, first_row+1, first_col), "content":parent_head, "format":head_format, 'comment':title})
+                    # worksheet.merge_range(first_row, first_col, first_row+1, first_col, parent_head, head_format)
+                    head_datas.append({'type': 'merge', 'cell': (first_row, first_col, first_row + 1, first_col),
+                                       "content": parent_head, "format": head_format, 'comment': title})
             else:
-                #worksheet.merge_range(first_row, first_col, first_row, first_col + len(child_list) - 1, parent_head, head_format)
-                head_datas.append({'type':'merge', 'cell' : (first_row, first_col, first_row, first_col + len(child_list) - 1), "content":parent_head, "format":head_format, 'comment':title})
+                # worksheet.merge_range(first_row, first_col, first_row, first_col + len(child_list) - 1, parent_head, head_format)
+                head_datas.append(
+                    {'type': 'merge', 'cell': (first_row, first_col, first_row, first_col + len(child_list) - 1),
+                     "content": parent_head, "format": head_format, 'comment': title})
         for child in child_list:
             # 表格内容
             options.setdefault('codes', []).append(child.get('code'))
@@ -232,14 +318,20 @@ class ExcelExport(object):
             if width is None:
                 width = len(to_unicode(child.get('head', parent_head))) * 2
                 width = 12 if width < 12 else width
-            column = {'width': width, "format": child.get('format', content_format)}
+            col_type = child.get('type')
+            options.setdefault('type', []).append(col_type)
+            _format = child.get('format', None)
+            if col_type in ('index', 'sum') and not _format:
+                _format = self.int_format
+            column = {'width': width, "format": _format}
             options.setdefault('columns', []).append(column)
-            options.setdefault('type', []).append(child.get('type'))
             # 设置列宽
             worksheet.set_column(first_col, first_col, width=width)
             # 二级表头
-            #worksheet.write(first_row + 1, first_col, child.get('head', ''), head_format)
-            head_datas.append({'type':'write', "cell" : (first_row + 1, first_col), "content":child.get('head', parent_head), "format":head_format, 'comment':child.get('title', title)})
+            # worksheet.write(first_row + 1, first_col, child.get('head', ''), head_format)
+            head_datas.append(
+                {'type': 'write', "cell": (first_row + 1, first_col), "content": child.get('head', parent_head),
+                 "format": head_format, 'comment': child.get('title', title)})
             first_col += 1
 
         options['first_col'] = first_col
@@ -281,24 +373,27 @@ class ExcelExport(object):
             data.append(tem)
 
         # 不知道什么原因，直接用 add_table 会导致生成的Excel报错，或者没有了筛选功能。故改成下面的遍历 write 写法。
-        #worksheet.add_table(first_row+2, 0, len(data)+first_row+1, len(columns)-1, {"data": data, "header_row": False, "columns":columns})
+        # worksheet.add_table(first_row+2, 0, len(data)+first_row+1, len(columns)-1, {"data": data, "header_row": False, "columns":columns})
         row_index = first_row + 1 if head_row == 1 else first_row + 2
         for row_data in data:
             for col_index in range(len(codes)):
-                format = columns[col_index].get('format')
+                _format = columns[col_index].get('format')
                 value = row_data[col_index]
-                if not format:
+                if not _format:
                     if isinstance(value, (int, long)):
-                        format = self.int_format
+                        _format = self.int_format
                     elif isinstance(value, (float, decimal.Decimal)):
-                        format = self.float_format
+                        _format = self.float_format
                     elif isinstance(value, (time.struct_time, datetime.datetime)):
-                        format = self.time_format
+                        _format = self.time_format
                     elif isinstance(value, datetime.date):
-                        format = self.date_format
+                        _format = self.date_format
+                    elif isinstance(value, basestring):
+                        _format = self.left_content
                     else:
-                        format = self.left_content
-                worksheet.write(row_index, col_index, value, format)
+                        value = str(value)
+                        _format = self.left_content
+                worksheet.write(row_index, col_index, value, _format)
             row_index += 1
 
         # 统计行
@@ -345,14 +440,15 @@ def excel_reader(url, sheet_name=None):
     读取 Excel 内容
     :param {string} url: 需读取的 excel 文件路径
     :param {string} sheet_name: 需读取的 标签页名称
-    :return {dict}: Excel 内容的dict, {标签页名称:按行列组成的二维数组table}
+    :return {dict}: Excel 内容的dict, {标签页名称:按行列组成的二维数组table}。 打开Excel异常时返回None
     """
     # 文件必须先下载到本地，否则无法读取
     url_lower = url.lower()
-    tem_file = False # 是否需要删除临时文件的标识
+    tem_file = False  # 是否需要删除临时文件的标识
     if url_lower.startswith('http:') or url_lower.startswith('https:'):
         now = datetime.datetime.now()
-        file_path = os.path.join('logs', 'excel', now.strftime('%Y%m%d'), now.strftime('%H%M%S'), str(random.randint(1000, 9999)) + '.xlsx')
+        file_path = os.path.join('logs', 'excel', now.strftime('%Y%m%d'), now.strftime('%H%M%S'),
+                                 str(random.randint(1000, 9999)) + '.xlsx')
         download_file(url, file_path)
         tem_file = True
     # 可能是本地硬盘地址(本机测试时用)
@@ -364,20 +460,22 @@ def excel_reader(url, sheet_name=None):
         raise Exception(u"文件不存在，请检查路径是否正确。")
 
     try:
-        # office 2007 文件读取
-        return excel_openpyxl_reader(file_path, sheet_name=sheet_name)
-    except:
-        logging.warning(u'Excel文件读取失败', exc_info=True)
-
-        # office 97-2003 文件读取
-        return excel_xlrd_reader(file_path, sheet_name=sheet_name)
+        _, ext = os.path.splitext(file_path)
+        # 新版，认为是4位后缀名
+        if len(ext) >= 5:
+            fun_list = [excel_openpyxl_reader, excel_xlrd_reader]
+        else:
+            fun_list = [excel_xlrd_reader, excel_openpyxl_reader]
+        # 遍历两种读取方式
+        for fun in fun_list:
+            try:
+                return fun(file_path, sheet_name=sheet_name)
+            except Exception as e:
+                logging.warning(u'Excel文件读取失败:%s, %s', e, url)
     finally:
         # 删除临时下载的excel文件，没必要存
         if tem_file and os.path.isfile(file_path):
-            try:
-                remove(file_path)
-            except: # 不一定有删除权限
-                pass
+            remove(file_path)
 
 
 def excel_openpyxl_reader(url, sheet_name=None):
@@ -388,22 +486,30 @@ def excel_openpyxl_reader(url, sheet_name=None):
     :return {dict}: Excel 内容的dict, {标签页名称:按行列组成的二维数组table}
     """
     # office 2007 文件读取
-    workbook = openpyxl.load_workbook(filename=url, read_only=True, guess_types=True)
-    data = {} # 数据容器,内容为 {标签页名称:内容}
-    #active_sheet = workbook.active # 被选中的标签页
+    workbook = openpyxl.load_workbook(filename=url, read_only=True)
+    data = {}  # 数据容器,内容为 {标签页名称:内容}
+    # active_sheet = workbook.active # 被选中的标签页
     # 遍历各标签页
     for sheet in workbook:
         if sheet_name and sheet.title != sheet_name: continue
-        max_row = sheet.max_row # 最大行数
-        max_column = sheet.max_column # 最大列数
-        keep_data = [] # 解析类型后的新结果
+        max_row = sheet.max_row  # 最大行数
+        max_column = sheet.max_column  # 最大列数
+        keep_data = []  # 解析类型后的新结果
         for row_num in range(1, max_row + 1):
             row_values = []
-            keep_data.append(row_values)
-            for col_num in range(1, max_column + 1):
-                value = sheet.cell(row=row_num,column=col_num).value
+            # 倒序读取，未位为空的不取(有可能手误导致后面各列都是空)
+            for col_num in range(max_column, 0, -1):
+                value = sheet.cell(row=row_num, column=col_num).value
+                if value is None and len(row_values) == 0:
+                    continue
                 row_values.append(value)
-        if max_row == 1 and max_column == 1 and keep_data == [[None]]: continue # 没有内容的标签页，不处理
+            # 完全为空的一行数据，不添加进来
+            if row_values:
+                row_values.reverse()  # 倒序，让数据恢复顺序
+                keep_data.append(row_values)
+        # 没有内容的标签页，不处理
+        if not keep_data:
+            continue
         data[sheet.title] = keep_data
     if sheet_name:
         if data:
@@ -423,23 +529,22 @@ def excel_xlrd_reader(url, sheet_name=None):
     # office 97-2003 文件读取
     try:
         workbook = xlrd.open_workbook(url, encoding_override='utf-8')
-    except UnicodeDecodeError, e:
+    except UnicodeDecodeError as e:
         workbook = xlrd.open_workbook(url, encoding_override='gbk')
     sheets = workbook.sheets()
-    data = {} # 数据容器,内容为 {标签页名称:内容}
+    data = {}  # 数据容器,内容为 {标签页名称:内容}
     # 遍历各标签页
     for sheet in sheets:
         if sheet_name and sheet.name != sheet_name: continue
         # 本标签页的数据容器,内容是一个二维数组,一个按行列组成的table
         table = sheet._cell_values
-        if not table: continue # 没有内容的标签页，不处理
+        if not table: continue  # 没有内容的标签页，不处理
         # 类型 0 empty,1 string, 2 number, 3 date, 4 boolean, 5 error
         cell_types = sheet._cell_types
-        keep_data = [] # 解析类型后的新结果
+        keep_data = []  # 解析类型后的新结果
         for col_values in table:
             row_values = []
             row_types = cell_types[len(keep_data)]
-            keep_data.append(row_values)
             for value in col_values:
                 _type = row_types[len(row_values)]
                 # value的类型转换
@@ -456,6 +561,19 @@ def excel_xlrd_reader(url, sheet_name=None):
                 elif _type == 4:
                     value = bool(value)
                 row_values.append(value)
+            # 完全为空的一行数据，不添加进来
+            if [v for v in row_values if v is not None]:
+                new_row_values = []
+                # 倒序读取，未位为空的不取(有可能手误导致后面各列都是空)
+                for v in row_values[::-1]:
+                    if v is None and len(new_row_values) == 0:
+                        continue
+                    new_row_values.append(v)
+                new_row_values.reverse()  # 倒序，让数据恢复顺序
+                keep_data.append(new_row_values)
+        # 没有内容的标签页，不处理
+        if not keep_data:
+            continue
         data[sheet.name] = keep_data
 
     # 返回结果
@@ -495,7 +613,7 @@ def excel_abstract(sheet_data, title_dict, title_list_dict, need_title):
     :param {list} need_title: 必须的标题key列表，默认全部的 title_dict 都需要， 格式是： ['key1', 'key2', 'key3', 'key4']
     :return {list<dict>}:解析出的数据列表，各内容以dict形式拼接。如： [{'key1':111,'key2':222, 'key3':[11,22,33], 'key4':[44,55,66,]}]
     """
-    result = [] # Excel解析结果
+    result = []  # Excel解析结果
     if not sheet_data:
         return result
     if not title_dict or not isinstance(title_dict, dict):
@@ -504,23 +622,23 @@ def excel_abstract(sheet_data, title_dict, title_list_dict, need_title):
         need_title = title_dict.keys()
     title_list_dict = title_list_dict or {}
 
-    index_line = 0 # 取值行标
-    read_line_keys = False # 标题列是否已取值成功
-    index_dict = {k:None for k in title_dict} # 单列取值集合
-    indexes_dict = {k:[] for k in title_list_dict} # 多列取值集合
-    need_title_keys = [] # 标题行的列名称列表
+    index_line = 0  # 取值行标
+    read_line_keys = False  # 标题列是否已取值成功
+    index_dict = {k: None for k in title_dict}  # 单列取值集合
+    indexes_dict = {k: [] for k in title_list_dict}  # 多列取值集合
+    need_title_keys = []  # 标题行的列名称列表
     for k, col_names in title_dict.iteritems():
         if isinstance(col_names, (list, tuple, set)):
-            col_names.extend([unicode(v).upper() for v in col_names]) # 忽略列的大小写
+            col_names.extend([unicode(v).upper() for v in col_names])  # 忽略列的大小写
             if k in need_title:
                 need_title_keys.extend(col_names)
         elif isinstance(col_names, basestring):
-            col_name_list = [col_names, unicode(col_names).upper()] # 忽略列的大小写
+            col_name_list = [col_names, unicode(col_names).upper()]  # 忽略列的大小写
             title_dict[k] = col_name_list
             if k in need_title:
                 need_title_keys.extend(col_name_list)
     for k, col_name_list in title_list_dict.iteritems():
-        col_name_list.extend([unicode(v).upper() for v in col_name_list]) # 忽略列的大小写
+        col_name_list.extend([unicode(v).upper() for v in col_name_list])  # 忽略列的大小写
         if k in need_title:
             need_title_keys.extend(col_name_list)
 
@@ -556,11 +674,11 @@ def excel_abstract(sheet_data, title_dict, title_list_dict, need_title):
             result.append(data)
             # 单列取值
             for k, index in index_dict.iteritems():
-                if index is None or not isinstance(index, int):continue
+                if index is None or not isinstance(index, int): continue
                 data[k] = _get_excel_value(line[index])
             # 多列取值
             for k, index_list in indexes_dict.iteritems():
-                if not index_list:continue
+                if not index_list: continue
                 value_list = data[k] = []
                 for index in index_list:
                     value_list.append(_get_excel_value(line[index]))
