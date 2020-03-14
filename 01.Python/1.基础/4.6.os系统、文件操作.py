@@ -258,7 +258,7 @@ os 模块
         f.write( s ) # 把文本写入文件
     f.close() # 关闭io流
 
-    f2 = open(filePath) # 没有提供模式，则默认是读取,即 'r'
+    f2 = open(filePath) # 没有提供模式，则默认是读取,即 'r'(读)
     while True:
         line = f2.readline()
         if len(line) == 0: # 读取结束
@@ -269,6 +269,13 @@ os 模块
     # 删除文件
     import os
     os.remove(filePath)
+
+    # py3 中，可以在打开文件时指定编码，但 py2 的 open 不能。兼容方式是 py2 使用 codecs.open
+    import sys
+    if sys.version_info[0] == 2:
+        from codecs import open  # 打开文件时，可以指定编码
+    with open(filePath, encoding='utf-8') as f:
+        ...
 
 
 ########### 示例5 文件操作(获取文件修改时间) #################################
