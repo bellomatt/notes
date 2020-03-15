@@ -51,6 +51,7 @@
         $ git ls-files -v | grep settings.py  # 查看某文件是否被忽略(正常的显示“H”开头, 被忽略的“S”开头)
         $ git update-index --skip-worktree web/mvc/cloud/settings.py # 忽略某文件的修改, 不提交
         $ git update-index --no-skip-worktree web/mvc/cloud/settings.py # 恢复某文件的提交, 以上面的相对
+        $ git reset --hard origin/master  # 撤销本地、暂存区、版本库(用远程服务器的origin/master替换本地、暂存区、版本库)
 
         $ git log   # 查看提交日志
         $ git log -3 # 查看最后 3 条提交信息
@@ -265,6 +266,20 @@
 
         如果想将整个项目回溯到以前的某个版本, 可以使用 "git reset"。可以选择的参数包括默认的 "--mixed" 和 "--hard", 前者不会取消工作目录的修改, 而后者则放弃全部的修改。该操作会丢失其后的日志。
         $ git reset --hard HEAD^
+
+    4.1. 强制拉取远程项目覆盖本地项目
+
+        需要将远程更新取回本地，这时就要用到git fetch命令。
+        $ git fetch --all
+
+        撤销本地、暂存区、版本库(用远程服务器的origin/master替换本地、暂存区、版本库)
+        $ git reset --hard origin/master
+
+        从远程仓库"同步"代码
+        $ git pull origin master
+
+        强制覆盖本地命令（单条执行）：
+        $ git fetch --all && git reset --hard origin/master && git pull
 
 
     5. 查看文件详细信息

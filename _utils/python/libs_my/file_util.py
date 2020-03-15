@@ -16,6 +16,7 @@ try:
     from queue import Queue
     from urllib.request import urlretrieve
     from urllib.request import URLError as HTTPError
+    long = int
 except:
     # py2
     from Queue import Queue
@@ -23,12 +24,7 @@ except:
     from urllib2 import HTTPError
 
 __all__ = ('get_first_lines', 'get_last_lines', 'remove', 'clear', 'download_file', 'file_quantity',
-           'get_file_quantity', 'file_update_dt')
-
-try:
-    long
-except:
-    long = int
+           'get_file_quantity', 'file_update_dt', 'get_file_size')
 
 
 def get_first_lines(file_path, num=1, include_blank=False):
@@ -211,3 +207,12 @@ def file_update_dt(file_path):
     modify_time = os.path.getmtime(file_path)  # 文件的修改时间
     file_time = max(create_time, modify_time)  # 选一个最新的时间为文件更新时间
     return datetime.datetime.fromtimestamp(file_time)
+
+
+def get_file_size(file_path):
+    """获取文件大小，单位：字节"""
+    # 特别大的文件过滤
+    try:
+        return os.path.getsize(file_path)
+    except:
+        return 0

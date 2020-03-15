@@ -15,6 +15,7 @@ Updated on 2019/1/18
 """
 import os
 import sys
+import csv
 import types
 import time
 import datetime
@@ -26,7 +27,7 @@ import xlrd
 import xlsxwriter
 import openpyxl
 
-from .str_util import to_str, to_unicode
+from .str_util import to_str, to_unicode, CODING_LIST
 from .file_util import download_file, remove
 
 PY2 = sys.version_info[0] == 2
@@ -36,22 +37,28 @@ if PY2:
         from cStringIO import StringIO
     except:
         from StringIO import StringIO
+    from codecs import open  # 打开文件时，可以指定编码
 elif PY3:
     from io import StringIO
     basestring = unicode = str
     long = int
 
-__all__ = ('ExcelExport', 'excel_reader', 'excel_abstract')
+__all__ = ('ExcelExport', 'excel_reader', 'excel_abstract', 'is_excel')
 
 
 def is_excel(file_path):
     """判定文件是否Excel"""
+    _, file_name = os.path.split(file_path)
+    if file_name.startswith(('~$', '.~')):
+        return False
+    if file_name in ('.DS_Store', 'Thumbs.db', 'folder.ini',):
+        return False
     _, ext = os.path.splitext(file_path)
     ext = ext.lower()[1:]
     return ext in ['xls', 'xlsx', 'xlt', 'xltx', 'xlsm', 'xltm', 'csv']
 
 
-def get_object_value(obj, code, default=None):
+def get_object_value(obj, code, default=''):
     """
     获取表格传入对象的值
     :param {object|dict} obj: 要获取值的对象
@@ -464,6 +471,9 @@ def excel_reader(url, sheet_name=None):
         # 新版，认为是4位后缀名
         if len(ext) >= 5:
             fun_list = [excel_openpyxl_reader, excel_xlrd_reader]
+        # csv 格式需要特殊读取
+        elif ext.lower() == '.csv':
+            return csv_reader(url, sheet_name=sheet_name)
         else:
             fun_list = [excel_xlrd_reader, excel_openpyxl_reader]
         # 遍历两种读取方式
@@ -583,6 +593,25 @@ def excel_xlrd_reader(url, sheet_name=None):
         else:
             return [[]]
     return data
+
+
+def csv_reader(url, sheet_name=None):
+    """csv格式的文件读取"""
+    result = []
+    null_set = set([''])
+    for encode in CODING_LIST:
+        try:
+            with open(url, encoding=encode) as f:
+                reader = csv.reader(f)
+                result = [row for row in reader if set(row) != null_set]
+                break
+        except UnicodeDecodeError as e:
+            pass
+    # 保持跟其它两种读取方式的返回值一致
+    if sheet_name is None:
+        return {'sheet1': result}
+    else:
+        return result
 
 
 def _get_excel_value(value):

@@ -33,6 +33,8 @@ __all__ = ('to_unicode', 'to_str', 'deep_str', 'to_human', 'to_json', 'json2str'
            'gzip_encode', 'gzip_decode', 'zlib_encode', 'zlib_decode',
            "MD5", 'is_MD5', 'is_mobile', "is_email", 'is_credentials_no', 'create_random', 'number_format')
 
+CODING_LIST = ["utf-8", 'gb18030', "big5", "gbk", sys.getdefaultencoding(), 'unicode-escape', "ascii"]
+
 
 def to_unicode(value, **kwargs):
     """
@@ -47,7 +49,8 @@ def to_unicode(value, **kwargs):
         # str类型,需要按它原本的编码来解码出 unicode,编码不对会报异常
         if isinstance(value, str):
             from_code = kwargs.get('from_code')
-            for encoding in (from_code, "utf-8", "gbk", "big5", 'unicode-escape', sys.getdefaultencoding(), "ascii"):
+            code_list = [from_code] + CODING_LIST if from_code else CODING_LIST
+            for encoding in code_list:
                 if not encoding or not isinstance(encoding, basestring): continue
                 try:
                     value = value.decode(encoding)
@@ -95,6 +98,26 @@ def to_str(value, encode="utf-8", **kwargs):
         return to_unicode(value, **kwargs).encode(encode)
     # 其它类型
     return value
+
+
+if PY3:
+    def to_str(value, encode="utf-8", **kwargs):
+        """
+        将字符转为utf8编码
+        :param {string} value: 将要被转码的值,类型可以是:str,unicode 类型
+        :param {string} encode: 编码类型,默认是 utf-8 编码
+        :return {str}: 返回转成 str 的字符串
+        """
+        if isinstance(value, basestring):
+            return value
+        if isinstance(value, (bytes, bytearray)):
+            from .json_util import decode2str
+            return decode2str(value)
+        # 其它类型
+        return value
+
+    def to_unicode(value, **kwargs):
+        return to_str(value, **kwargs)
 
 
 def deep_str(value, all2str='time', **kwargs):
