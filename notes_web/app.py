@@ -18,6 +18,8 @@ if PY2:
 
 # 文件的编码尝试列表
 CODING_LIST = ["utf-8", 'gb18030', "gbk", 'big5']
+# 自动改编码的文件后缀列表
+CHANGE_EXT = ('.py', '.js', '.md', '.html', '.txt', '.java', '.cs', '.jsp', '.go', '.php', '.css', '.conf')
 
 
 def read_file(file_path):
@@ -57,7 +59,7 @@ def read_file(file_path):
             with open(file_path, 'r', encoding=encode) as f:
                 result = f.read()
             # 自动改编码
-            if result and encode != CODING_LIST[0]:
+            if result and encode != CODING_LIST[0] and not file_path.lower().endswith(CHANGE_EXT):
                 with open(file_path, 'w', encoding="utf-8") as f:
                     f.write(result)
             return result
@@ -74,11 +76,17 @@ def markdeep():
 @route('/:file_path#.*#')
 def page(file_path):
     """打开页面"""
+    # 去掉参数
+    if '?' in file_path:
+        file_path = file_path[:file_path.index('?')]
     p = file_path.lower()
+    # 压缩包，不能读
+    if p.endswith(('.zip', '.rar', '.arj', '.z')):
+        return '压缩文件，无法打开'
     text = read_file(file_path)
     text += '\r\n <META http-equiv="Content-Type" content="text/html; charset=utf-8"/>'
     # 对 markdown 文件，自动加载样式。其它文件显示原文。
-    if not p or p.endswith(('/', '.md')) or '.md?' in p or '/?' in p:
+    if not p or p.endswith(('/', '.md')):
         text += '\r\n <!-- Markdeep: --><script src="/notes_web/markdeep.js" charset="utf-8"></script>'
     else:
         text = text.replace('\n', '\n<br/>')
