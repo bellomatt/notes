@@ -5,6 +5,7 @@
 """
 import os
 import sys
+import logging
 
 from bottle import route, run, static_file
 current_dir, _ = os.path.split(os.path.abspath(__file__))
@@ -59,7 +60,8 @@ def read_file(file_path):
             with open(file_path, 'r', encoding=encode) as f:
                 result = f.read()
             # 自动改编码
-            if result and encode != CODING_LIST[0] and not file_path.lower().endswith(CHANGE_EXT):
+            if result and encode != CODING_LIST[0] and file_path.lower().endswith(CHANGE_EXT):
+                logging.warning('修改文件编码： %s', file_path)
                 with open(file_path, 'w', encoding="utf-8") as f:
                     f.write(result)
             return result

@@ -42,7 +42,9 @@
     11.r.lastsave() # 取最后一次save时间
     12.r.shutdown() # 关闭所有客户端，停掉所有服务，退出服务器
     13.r.flush()  # 刷新
-    14.看 redis 信息
+    14.看
+redis
+信息
        info = r.info()
        for key in info:
            print( "%s: %s" % (key, info[key]) )
@@ -177,7 +179,7 @@
        ]
 
 其他命令API，请参照redis-Python作者的博客：
-https://github.com/andymccurdy/redis-py
+https:// github.com / andymccurdy / redis - py
 
 
 
