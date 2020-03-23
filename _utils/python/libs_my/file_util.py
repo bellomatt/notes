@@ -166,7 +166,10 @@ def download_file(url, file_path):
 
 
 def file_quantity(path):
-    """统计文件数量"""
+    """统计文件数量
+    :param path:目录路径
+    :return: 此目录下的总文件数量(不包括目录数，系统自动生成的隐藏文件可能会不统计)
+    """
     file_num = 0
     for file_or_folder in os.listdir(path):
         sub_path = os.path.join(path, file_or_folder)
@@ -181,6 +184,8 @@ def get_file_quantity(folder):
     """BFS获取文件夹下文件的总数量
     前面写的是递归的方式处理，感觉对资源的占用不友好，而且python的最大递归深度不超过1000。
     所以优化了一下，这里用广度优先遍历的方式实现。实测发现，性能差异不大。
+    :param folder:目录路径
+    :return: 此目录下的总文件数量(不包括目录数，系统自动生成的隐藏文件可能会不统计)
     """
     # 判断初始文件夹
     assert os.path.isdir(folder), '请输入有效的文件夹参数'
@@ -202,6 +207,7 @@ def get_file_quantity(folder):
 def file_update_dt(file_path):
     """获取文件的最后更新时间
     :param file_path:文件路径
+    :return: 文件的最后更新时间（datetime.datetime类型）
     """
     create_time = os.path.getctime(file_path)  # 文件的创建时间
     modify_time = os.path.getmtime(file_path)  # 文件的修改时间
@@ -216,3 +222,24 @@ def get_file_size(file_path):
         return os.path.getsize(file_path)
     except:
         return 0
+
+
+def show_file_size(file_path=None, file_size=None):
+    """显示文件大小，单位分别为 B、K、M、G
+    :param file_path:文件路径
+    :param file_size:文件大小(单位为字节，整数类型)。没有传入此值则根据路径获取文件的大小
+    :return: 文件大小的容易人看的模式。
+    """
+    if file_size is None and file_path:
+        file_size = os.path.getsize(file_path)
+    if not file_size:
+        return '0B'
+    if file_size < 1024:
+        return "%sB" % file_size
+    if 1024 <= file_size < 1024 * 1024:
+        return "%.2fK" % (file_size / 1024.0)
+    elif 1024 * 1024 <= file_size < 1024 * 1024 * 1024:
+        return "%.2fM" % (file_size / (1024 * 1024.0))
+    else:
+        return "%.2fG" % (file_size / (1024 * 1024 * 1024.0))
+

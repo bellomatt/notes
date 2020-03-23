@@ -16,31 +16,48 @@ from libs_my import json_util
 
 class TestJsonUtil(unittest.TestCase):
 
-    def test_decode2str(self):
+    def test_str_bytes(self):
+        a = "哈哈xyz呵呵馬大親"
+        s = json_util.decode2str(a)
+        self.assertEqual(a, s)
+        self.assertTrue(isinstance(s, str))
+
+        c = b'absde'
+        s2 = json_util.decode2str(c)
+        self.assertTrue(isinstance(s2, str))
+        self.assertEqual('absde', s2)
+
+        b = json_util.encode2bytes(a)
+        self.assertTrue(isinstance(b, bytes))
+        d = json_util.encode2bytes(c)
+        self.assertTrue(isinstance(d, bytes))
+        self.assertEqual(c, d)
+
+    def test_to_utf8_str(self):
         a = "哈哈xyz呵呵馬大親"
         for code in ('utf-8', 'GBK', 'big5', 'GB18030', 'unicode-escape'):
             # bytes
             b = bytes(a, code)
-            s = json_util.decode2str(b)
+            s = json_util.to_utf8_str(b)
             self.assertTrue(isinstance(s, str))
             self.assertEqual(s, a)
             # bytearray
             br = bytearray(a, code)
-            s = json_util.decode2str(br)
+            s = json_util.to_utf8_str(br)
             self.assertTrue(isinstance(s, str))
             self.assertEqual(s, a)
 
-    def test_encode2bytes(self):
+    def test_to_utf8_bytes(self):
         # big5
         a = "馬xyz大親"
         b0 = bytes(a, 'utf-8')
         code = 'big5'
         s0 = b0.decode(code)
-        b2 = json_util.encode2bytes(s0)
+        b2 = json_util.to_utf8_bytes(s0)
         self.assertTrue(isinstance(b2, bytes))
         self.assertEqual(b2, b0)
         # str
-        s = json_util.decode2str(s0)
+        s = json_util.to_utf8_str(s0)
         self.assertTrue(isinstance(s, str))
         self.assertEqual(s, a)
 
@@ -48,11 +65,11 @@ class TestJsonUtil(unittest.TestCase):
         b0 = bytes(a, 'utf-8')
         for code in ('utf-8', 'gbk', 'GB18030', 'unicode-escape'):
             s0 = b0.decode(code)
-            b2 = json_util.encode2bytes(s0)
+            b2 = json_util.to_utf8_bytes(s0)
             self.assertTrue(isinstance(b2, bytes))
             self.assertEqual(b2, b0)
             # str
-            s = json_util.decode2str(s0)
+            s = json_util.to_utf8_str(s0)
             self.assertTrue(isinstance(s, str))
             self.assertEqual(s, a)
 
@@ -93,6 +110,7 @@ class TestJsonUtil(unittest.TestCase):
 
     def test_enum_change(self):
         """enum_change tests"""
+        self.assertEqual(json_util.enum_change(1, "{1: '一', 2: '二', 3: '三'}"), '一')
         self.assertEqual(json_util.enum_change(1, {1: '一', 2: '二', 3: '三'}), '一')
         self.assertEqual(json_util.enum_change('3', {1: '一', 2: '二', 3: '三'}), '三')
         self.assertEqual(json_util.enum_change(1, {'1': '一', '2': '二', '3': '三'}), '一')
@@ -100,6 +118,17 @@ class TestJsonUtil(unittest.TestCase):
         self.assertEqual(json_util.enum_change('二', {1: '一', 2: '二', 3: '三'}), '二')
         self.assertEqual(json_util.enum_change(5, {'1': '一', '2': '二', '3': '三'}), None)
         self.assertEqual(json_util.enum_change('10', {'1': '一', '2': '二', '3': '三'}), None)
+
+    def test_enum_or_key(self):
+        """enum_or_key tests"""
+        self.assertEqual(json_util.enum_or_key(1, "{1: '一', 2: '二', 3: '三'}"), '一')
+        self.assertEqual(json_util.enum_or_key(1, {1: '一', 2: '二', 3: '三'}), '一')
+        self.assertEqual(json_util.enum_or_key('3', {1: '一', 2: '二', 3: '三'}), '三')
+        self.assertEqual(json_util.enum_or_key(1, {'1': '一', '2': '二', '3': '三'}), '一')
+        self.assertEqual(json_util.enum_or_key('2', {'1': '一', '2': '二', '3': '三'}), '二')
+        self.assertEqual(json_util.enum_or_key('二', {1: '一', 2: '二', 3: '三'}), '二')
+        self.assertEqual(json_util.enum_or_key(5, {'1': '一', '2': '二', '3': '三'}), 5)
+        self.assertEqual(json_util.enum_or_key('10', {'1': '一', '2': '二', '3': '三'}), '10')
 
     def test_load_json(self):
         """load_json test"""
@@ -148,7 +177,7 @@ class TestJsonUtil(unittest.TestCase):
                 datetime.date(2019, 6, 18): uuid.UUID('81ab20bf-ecd9-4cc7-beb1-498da7e0b75d')}
         json_util.dump_json_file(t, file_name)
         t2 = {'aa': 4.55, 'b1': {'ll': 66.55, '测试': 554, '测试2': '测试2值', 'c': [1, '哈啊', '啊哈']},
-             '元组': [list(set('abcd')), 55.6722, '2015-06-28 14:19:41'],
+             '元组': [list(set('abcd')), 55.6722, '2015-06-28T14:19:41'],
              '2019-06-18': '81ab20bfecd94cc7beb1498da7e0b75d'}
         self.assertEqual(json_util.load_json_file(file_name), t2)
 
@@ -163,12 +192,12 @@ class TestJsonUtil(unittest.TestCase):
         # key, uuid, datetime serializable
         self.assertEqual(json_util.json_serializable(
             {uuid.UUID('81ab20bf-ecd9-4cc7-beb1-498da7e0b75d'): datetime.datetime(2015, 6, 28, 14, 19, 41)}),
-            {'81ab20bfecd94cc7beb1498da7e0b75d': '2015-06-28 14:19:41'})
+            {'81ab20bfecd94cc7beb1498da7e0b75d': '2015-06-28T14:19:41'})
 
         # tuple, set, decimal serializable
         self.assertEqual(json_util.json_serializable(
             (set('abcd'), decimal.Decimal('55.6722'), datetime.date(2019, 6, 18), time.localtime())),
-            [list(set('abcd')), 55.6722, '2019-06-18', time.strftime('%Y-%m-%d %H:%M:%S')])
+            [list(set('abcd')), 55.6722, '2019-06-18', time.strftime('%Y-%m-%dT%H:%M:%S')])
 
         # all
         arg1 = {'aa': 4.55, 'b1': {'ll': 66.55, u'测试': 554, '测试2': u'测试2值', 'c': [1, u'哈啊', '啊哈']},
@@ -176,7 +205,7 @@ class TestJsonUtil(unittest.TestCase):
                 datetime.date(2019, 6, 18): uuid.UUID('81ab20bf-ecd9-4cc7-beb1-498da7e0b75d')}
         self.assertEqual(json_util.json_serializable(arg1),
             {'aa': 4.55, 'b1': {'ll': 66.55, '测试': 554, '测试2': '测试2值', 'c': [1, '哈啊', '啊哈']},
-             '元组': [list(set('abcd')), 55.6722, '2015-06-28 14:19:41'],
+             '元组': [list(set('abcd')), 55.6722, '2015-06-28T14:19:41'],
              '2019-06-18': '81ab20bfecd94cc7beb1498da7e0b75d'})
 
 

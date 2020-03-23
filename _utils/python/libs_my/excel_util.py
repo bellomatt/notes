@@ -151,6 +151,67 @@ class ExcelExport(object):
     export_name = u'员工信息_%s' % datetime.date.today().strftime('%m%d')
     MyExport(data=data, export_name=export_name, file_path='.')
 
+
+    使用范例2(多标签页,动态表头)：
+    class DailyExport(excel_util.ExcelExport):
+
+        def add_sheets(self):
+            self.add_sheet1()
+            self.add_sheet2()
+
+        def add_sheet1(self):
+            worksheet = self.workbook.add_worksheet('各机器')
+            # worksheet.freeze_panes('C2')
+            worksheet.freeze_panes(1, 2)  # 跟上一句冻结的单元格一样。数字是从 0 开始算的。
+            self.set_options(worksheet, head_row=1, source=self.data[0])
+            # 下面指定各列的内容及格式
+            self.set_table_col(worksheet, parent_head='IP', child_list={'code': 'ip', 'width': 12})
+            self.set_table_col(worksheet, parent_head='城市', child_list={'code': 'region', 'width': 18})
+            self.set_table_col(worksheet, parent_head='文件总数', title='本程序统计', child_list={'code': 'total'})
+            self.set_table_col(worksheet, parent_head='已成功数量', child_list={'code': 'success'})
+            self.set_table_col(worksheet, parent_head='失败数量', child_list={'code': 'fail'})
+            self.set_table_col(worksheet, parent_head='成功率', child_list={'code': lambda o: '-' if not o.get('total') else ('%.2f%%' % (o['success'] / o['total'] * 100.0))})
+            # 写入数据
+            self.write_table_data(worksheet, add_sum_line=False)
+
+        def add_sheet2(self):
+            worksheet = self.workbook.add_worksheet('各天')
+            worksheet.freeze_panes('C3')
+            date_heads = self.data[1]
+            self.set_options(worksheet, head_row=2, source=self.data[2])
+            self.set_table_col(worksheet, parent_head='IP', child_list={'code': 'ip', 'width': 12})
+            self.set_table_col(worksheet, parent_head='城市', child_list={'code': 'region', 'width': 18})
+            # 下面指定各列的内容及格式
+            for date in date_heads:
+                self.set_table_col(worksheet, parent_head=date, child_list=[
+                    {'head': '上传数', 'width': 12, 'code': lambda o, d=date: o.get(d)[0]},  # 注意这里的 lambda 传两个参数,后一个用默认值来传递
+                    {'head': '请求平均耗时', 'width': 14, 'code': lambda o, d=date: o.get(d)[1]},
+                    {'head': '文件平均大小', 'width': 14, 'code': lambda o, d=date: o.get(d)[2]}
+                ])
+                self.set_table_col(worksheet, child_list={'code': '', 'width': 2})  # 数据分隔行
+            # 写入数据
+            self.write_table_data(worksheet, add_sum_line=False)
+
+    export_name = '同步数统计_' + datetime.date.today().strftime('%m%d')
+    data1 = [
+            {'ip': '10.86.255.1', 'region': '成都数据', 'total': 27608, 'success': 24886, 'fail': 61},
+            {'ip': '10.86.26.1', 'region': '佛山数据', 'total': 39105, 'success': 37625, 'fail': 34}
+        ]
+    dates = ['2020-02-28', '2020-02-29', '2020-03-01']
+    data2 = [
+            {'ip': '10.86.255.1', 'region': '成都数据',
+                '2020-02-28': [4655, 11.01, 103.39],
+                '2020-02-29': [680, 5.58, 65.73],
+                '2020-03-01': [86, 29.47, 98.27],
+            },
+            {'ip': '10.86.26.1', 'region': '佛山数据',
+                '2020-02-28': [7, 27.71, 69.31],
+                '2020-02-29': [1, 36.02, 44.46],
+                '2020-03-01': [4, 15.25, 4910.62]
+            }
+        ]
+    DailyExport(data=[data1, dates, data2], export_name=export_name, file_path='./logs/')
+
     """
 
     export_name = None  # 导出的文件名(不包含文件后缀名)
@@ -473,6 +534,7 @@ def excel_reader(url, sheet_name=None):
             fun_list = [excel_openpyxl_reader, excel_xlrd_reader]
         # csv 格式需要特殊读取
         elif ext.lower() == '.csv':
+            fun_list = [excel_xlrd_reader, excel_openpyxl_reader]
             return csv_reader(url, sheet_name=sheet_name)
         else:
             fun_list = [excel_xlrd_reader, excel_openpyxl_reader]

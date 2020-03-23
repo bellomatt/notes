@@ -119,7 +119,6 @@ class AES_Test(unittest.TestCase):
         logging.info('*'*100)
 
 
-
 if __name__ == "__main__":
     unittest.main()
 

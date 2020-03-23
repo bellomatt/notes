@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 """
-json 工具类,仅支持py3版本
+json Utility
 """
 import os
 import sys
@@ -29,13 +29,34 @@ BIG_ENUM_JSON = {}
 
 
 def decode2str(content):
+    """change str, bytes or bytearray to str"""
+    if content is None:
+        return None
+    if isinstance(content, (bytes, bytearray)):
+        return content.decode()
+    return content
+
+
+def encode2bytes(content):
+    """change str to bytes"""
+    if content is None:
+        return None
+    if isinstance(content, str):
+        content = content.encode()
+    return content
+
+
+def to_utf8_str(content):
     """change str, bytes or bytearray to utf-8 str"""
     if content is None:
         return None
     if isinstance(content, (bytes, bytearray)):
         # unicode-escape
         if '\\u' in str(content):
-            return content.decode('unicode-escape').encode().decode()
+            try:
+                return content.decode('unicode-escape').encode().decode()
+            except (UnicodeEncodeError, UnicodeDecodeError) as e:
+                pass
         # try code list
         for encoding in DECODE_CODING_LIST:
             try:
@@ -65,7 +86,7 @@ def decode2str(content):
     return content
 
 
-def encode2bytes(content):
+def to_utf8_bytes(content):
     """change str to utf-8 bytes"""
     if content is None:
         return None
@@ -124,15 +145,15 @@ def enum_file_change(key, file_name):
 
     if isinstance(key, str):
         if key.isdigit():
-            tem_value = int(key)
-            if tem_value in enum_dict:
-                target = enum_dict.get(tem_value)
+            tem_key = int(key)
+            if tem_key in enum_dict:
+                target = enum_dict.get(tem_key)
                 enum_dict[key] = target
                 return target
     else:
-        tem_value = str(key)
-        if tem_value in enum_dict:
-            target = enum_dict.get(tem_value)
+        tem_key = str(key)
+        if tem_key in enum_dict:
+            target = enum_dict.get(tem_key)
             enum_dict[key] = target
             return target
 
@@ -161,17 +182,50 @@ def enum_change(key, enum_dict):
 
     if isinstance(key, str):
         if key.isdigit():
-            tem_value = int(key)
-            if tem_value in enum_dict:
-                return enum_dict.get(tem_value)
+            tem_key = int(key)
+            if tem_key in enum_dict:
+                return enum_dict.get(tem_key)
     else:
-        tem_value = str(key)
-        if tem_value in enum_dict:
-            return enum_dict.get(tem_value)
+        tem_key = str(key)
+        if tem_key in enum_dict:
+            return enum_dict.get(tem_key)
 
     if key in enum_dict.values():
         return key
     return None
+
+
+def enum_or_key(key, enum_dict):
+    """get the value of enum, if not found then return the key
+    :param key: key of enum json
+    :param enum_dict: enum json
+    :return: value of enum json, if not found in the enum then return the key
+
+    use in JTL: '''<SELECTOR> $ enumOrKey '{"F": "女", "M": "男"}' '''
+    """
+    if isinstance(enum_dict, str):
+        enum_dict = load_json(enum_dict)
+        assert isinstance(enum_dict, dict)
+
+    if key in enum_dict:
+        return enum_dict.get(key)
+
+    if isinstance(key, str):
+        if key.isdigit():
+            tem_key = int(key)
+            if tem_key in enum_dict:
+                value = enum_dict.get(tem_key)
+                enum_dict[key] = value
+                return value
+    else:
+        tem_key = str(key)
+        if tem_key in enum_dict:
+            value = enum_dict.get(tem_key)
+            enum_dict[key] = value
+            return value
+
+    enum_dict[key] = key
+    return key
 
 
 def load_json(value):
@@ -241,9 +295,9 @@ def json_serializable(value):
         return value
     # time, datetime to str
     elif isinstance(value, time.struct_time):
-        return time.strftime('%Y-%m-%d %H:%M:%S', value)
+        return time.strftime('%Y-%m-%dT%H:%M:%S', value)
     elif isinstance(value, datetime.datetime):
-        return value.strftime('%Y-%m-%d %H:%M:%S')
+        return value.strftime('%Y-%m-%dT%H:%M:%S')
     elif isinstance(value, datetime.date):
         return value.strftime('%Y-%m-%d')
     elif isinstance(value, decimal.Decimal):
@@ -265,6 +319,14 @@ def json_serializable(value):
         return str(value)
 
 
+class CustomJSONEncoder(json.JSONEncoder):
+    """
+    JSONEncoder subclass that knows how to encode date/time and decimal types.
+    """
+    def default(self, o):
+        return json_serializable(o)
+
+
 def dump_json_file(json_value, file_path):
     """
     write json content to a file
@@ -283,3 +345,4 @@ def dump_json_file(json_value, file_path):
     except Exception as e:
         logging.error('write a json file error:%s', e, exc_info=True)
     return True
+

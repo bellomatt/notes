@@ -15,9 +15,6 @@ from Crypto.Cipher import AES
 from Crypto import Random
 
 bs = AES.block_size
-# 定义向量 iv
-IV = [200, 90, 200, 144, 210, 109, 121, 45, 153, 144, 236, 208, 235, 133, 119, 152]
-iv2 = ''.join([chr(i) for i in IV])
 
 system_encoding = "utf-8"
 defaultencoding = sys.getdefaultencoding()
@@ -29,16 +26,24 @@ if PY3:
 
 
 def pad(s):
-    if PY3:
-        s = s.encode()
-    # return s + (bs - len(s) % bs) * chr(bs - len(s) % bs)
-    return s + (bs - len(s) % bs) * b'\x00'
+    s = str_to_bytes(s)
+    c = chr(bs - len(s) % bs)
+    c = str_to_bytes(c)
+    return s + (bs - len(s) % bs) * c
 
 
 def unpad(s):
     if PY3:
         s = s.decode()
     return s[0:-ord(s[-1])]
+
+
+def str_to_bytes(data):
+    """如果传入 str 类型，转成 bytes 类型返回。如果传入 bytes 类型，直接返回"""
+    u_type = type(b"".decode(system_encoding))
+    if isinstance(data, u_type):
+        return data.encode(system_encoding)
+    return data
 
 
 def to_str(text):
@@ -48,6 +53,9 @@ def to_str(text):
     :return {string}: 返回转换后的字符串
     """
     if PY3:
+        u_type = type(b"".decode(system_encoding))
+        if not isinstance(text, u_type):
+            return text.decode(system_encoding)
         return text
     try:
         # py2 的处理
@@ -88,12 +96,13 @@ def encryptData(data, key):
     if not key:
         raise RuntimeError(u'缺少加密的key!')
     data = to_str(data)
-    # iv = iv2
+    # 随机向量
     iv = Random.new().read(bs)
     cipher = AES.new(key, AES.MODE_CBC, iv)
     data = cipher.encrypt(pad(data))
     data = iv + data
-    return base64.b64encode(data)
+    data = base64.b64encode(data)
+    return to_str(data)
 
 
 def decryptData(data, key):
@@ -116,7 +125,7 @@ def decryptData(data, key):
     iv = data[:bs]
     cipher = AES.new(key, AES.MODE_CBC, iv)
     data = unpad(cipher.decrypt(data[bs:]))
-    return data
+    return to_str(data)
 
 
 if __name__ == '__main__':
