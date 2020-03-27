@@ -29,7 +29,10 @@ else:
 # 导入运行环境
 dirname = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(1, dirname + '/../..')
-sys.path.insert(2, dirname + '/../../libs')
+# 依赖库，由虚拟环境提供，如果导入了py3的库，需要去掉
+lib_path = os.path.abspath(dirname + '/../../libs')
+if lib_path in sys.path:
+    sys.path.remove(lib_path)
 
 # 尝试定义 django 的配置，因为涉及 django 的测试，必须要先定义配置，否则会出异常。
 try:

@@ -6,39 +6,37 @@ Created on 2016/10/18
 Updated on 2019/1/18
 @author: Holemar
 
-需要安装： pip PyCrypto==2.6.1
+需要安装： pip install PyCrypto==2.6.1
 """
 import sys
 import base64
+import hashlib
 
 from Crypto.Cipher import AES
 from Crypto import Random
 
 bs = AES.block_size
-
+MODE = AES.MODE_CBC  # mode
 system_encoding = "utf-8"
-defaultencoding = sys.getdefaultencoding()
 
 PY2 = sys.version_info[0] == 2
 PY3 = sys.version_info[0] == 3
 if PY3:
-    basestring = unicode = str
+    unicode = str
 
 
 def pad(s):
-    s = str_to_bytes(s)
-    c = chr(bs - len(s) % bs)
-    c = str_to_bytes(c)
+    s = to_bytes(s)
+    c = to_bytes(chr(bs - len(s) % bs))
     return s + (bs - len(s) % bs) * c
 
 
 def unpad(s):
-    if PY3:
-        s = s.decode()
-    return s[0:-ord(s[-1])]
+    s = to_str(s)
+    return to_str(s[:-ord(s[-1])])
 
 
-def str_to_bytes(data):
+def to_bytes(data):
     """如果传入 str 类型，转成 bytes 类型返回。如果传入 bytes 类型，直接返回"""
     u_type = type(b"".decode(system_encoding))
     if isinstance(data, u_type):
@@ -48,7 +46,7 @@ def str_to_bytes(data):
 
 def to_str(text):
     """
-    中文转换，将 unicode、gbk、big5 编码转成 str 编码(utf-8)
+    中文转换，将 unicode/bytes 编码转成 str 编码(utf-8)
     :param {string} text: 原字符串
     :return {string}: 返回转换后的字符串
     """
@@ -57,31 +55,33 @@ def to_str(text):
         if not isinstance(text, u_type):
             return text.decode(system_encoding)
         return text
-    try:
+    else:
         # py2 的处理
-        if defaultencoding and isinstance(defaultencoding, basestring):
-            encoding_tuple = ("gbk", "big5", defaultencoding)
-        else:
-            encoding_tuple = ("gbk", "big5")
         if isinstance(text, unicode):
             return text.encode(system_encoding)
-        elif isinstance(text, str):
-            try:
-                text.decode(system_encoding)
-                return text  # 如果上面这句执行没报异常，说明是 utf-8 编码，不用再转换
-            except:
-                pass
-            for encoding in encoding_tuple:
-                try:
-                    text = text.decode(encoding)
-                    return text.encode(system_encoding)
-                    break  # 如果上面这句执行没报异常，说明是这种编码
-                except:
-                    pass
         return str(text)
-    except NameError:
-        # py3 的处理
-        return text
+
+
+class AES_Cipher(object):
+    def __init__(self, key):
+        self.key = hashlib.sha256(to_bytes(key)).digest()
+
+    def encrypt(self, plaintext):
+        """加密，传入 str类型 的明文，返回加密后的 base64 编码的密文"""
+        iv = Random.new().read(AES.block_size)  # 生成随机初始向量IV
+        cryptor = AES.new(self.key, MODE, iv)
+        ciphertext = cryptor.encrypt(pad(plaintext))
+        encryption_text = iv + ciphertext
+        return to_str(base64.b64encode(encryption_text))
+
+    def decrypt(self, encryption_text):
+        """解密，传入 base64 编码的密文，返回解密的原始明文(str类型)"""
+        encryption_text = base64.b64decode(encryption_text)
+        iv = encryption_text[:AES.block_size]
+        cipher_text = encryption_text[AES.block_size:]
+        cipher = AES.new(self.key, MODE, iv)
+        plaintext = cipher.decrypt(cipher_text)
+        return unpad(plaintext)
 
 
 def encryptData(data, key):
@@ -139,3 +139,26 @@ if __name__ == '__main__':
     decrypt_data = decryptData(encrypt_data, key)
     print('decrypt_data:')
     print(decrypt_data)
+
+    encrypt = "P37w+VZImNgPEO1RBhJ6RtKl7n6zymIbEG1pReEzghk="
+    test_key = "test key"
+    cipher = AES_Cipher(test_key)
+    text = cipher.decrypt(encrypt)
+    print("明文:{}".format(text))
+    assert text == 'hello world'
+
+    aes2 = AES_Cipher("我的key")
+    p = "a secretsdfsdfsdfs"
+    e = aes2.encrypt(p)
+    print("加密：", type(e), e)
+    d = aes2.decrypt(e)
+    print("解密：", type(d), d)
+    assert d == p
+
+    p2 = "a secretsa哈sdfsdfs"
+    e2 = aes2.encrypt(p2)
+    print("加密：", type(e2), e2)
+    d2 = aes2.decrypt(e2)
+    print("解密：", type(d2), d2)
+    assert d2 == p2
+    print('*'*20)

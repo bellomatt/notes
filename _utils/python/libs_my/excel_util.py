@@ -531,13 +531,12 @@ def excel_reader(url, sheet_name=None):
         _, ext = os.path.splitext(file_path)
         # 新版，认为是4位后缀名
         if len(ext) >= 5:
-            fun_list = [excel_openpyxl_reader, excel_xlrd_reader]
+            fun_list = [excel_openpyxl_reader, excel_xlrd_reader, csv_reader]
         # csv 格式需要特殊读取
         elif ext.lower() == '.csv':
-            fun_list = [excel_xlrd_reader, excel_openpyxl_reader]
-            return csv_reader(url, sheet_name=sheet_name)
+            fun_list = [csv_reader, excel_xlrd_reader, excel_openpyxl_reader]
         else:
-            fun_list = [excel_xlrd_reader, excel_openpyxl_reader]
+            fun_list = [excel_xlrd_reader, excel_openpyxl_reader, csv_reader]
         # 遍历两种读取方式
         for fun in fun_list:
             try:

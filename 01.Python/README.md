@@ -17,7 +17,7 @@
 
 >> [gevent](./gevent/)  
 >> [gunicorn](./gunicorn/)  
->> [WSGI](./WSGI.py.md)  
+>> [WSGI](./WSGI.md)  
 >> [微信公众号](./微信公众号/)  
 
 # 数据库

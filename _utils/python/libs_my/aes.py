@@ -25,8 +25,11 @@ import random
 PY2 = sys.version_info[0] == 2
 PY3 = sys.version_info[0] == 3
 if PY3:
-    basestring = unicode = str
+    unicode = str
     long = int
+
+bs = 16
+system_encoding = "utf-8"
 
 
 class AES(object):
@@ -608,18 +611,19 @@ class AESModeOfOperation(object):
 
 def append_PKCS7_padding(s):
     """return s padded to a multiple of 16-bytes by PKCS7 padding"""
-    numpads = 16 - (len(s) % 16)
-    return s + numpads * chr(numpads)
+    s = str_to_bytes(s)
+    numpads = bs - (len(s) % bs)
+    return s + numpads * str_to_bytes(chr(numpads))
 
 
 def strip_PKCS7_padding(s):
     """return s stripped of PKCS7 padding"""
-    if len(s) % 16 or not s:
+    if len(s) % bs or not s:
         raise ValueError("String of len %d can't be PCKS7-padded" % len(s))
     numpads = ord(s[-1])
-    if numpads > 16:
+    if numpads > bs:
         raise ValueError("String ending with %r can't be PCKS7-padded" % s[-1])
-    return s[:-numpads]
+    return to_str(s[:-numpads])
 
 
 def check_keysize(key):
@@ -648,41 +652,30 @@ def int2hex(input_str):
     return ''.join(res)
 
 
-system_encoding = "utf-8"
-defaultencoding = sys.getdefaultencoding()
-if defaultencoding and isinstance(defaultencoding, basestring):
-    encoding_tuple = ("gbk", "big5", defaultencoding)
-else:
-    encoding_tuple = ("gbk", "big5")
+def str_to_bytes(data):
+    """如果传入 str 类型，转成 bytes 类型返回。如果传入 bytes 类型，直接返回"""
+    u_type = type(b"".decode(system_encoding))
+    if isinstance(data, u_type):
+        return data.encode(system_encoding)
+    return data
 
 
 def to_str(text):
     """
-    中文转换，将 unicode、gbk、big5 编码转成 str 编码(utf-8)
+    中文转换，将 unicode 编码转成 str 编码(utf-8)
     :param {string} text: 原字符串
     :return {string}: 返回转换后的字符串
     """
-    try:
+    if PY3:
+        u_type = type(b"".decode(system_encoding))
+        if not isinstance(text, u_type):
+            return text.decode("unicode-escape")
+        return text
+    else:
         # py2 的处理
         if isinstance(text, unicode):
             return text.encode(system_encoding)
-        elif isinstance(text, str):
-            try:
-                text.decode(system_encoding)
-                return text  # 如果上面这句执行没报异常，说明是 utf-8 编码，不用再转换
-            except:
-                pass
-            for encoding in encoding_tuple:
-                try:
-                    text = text.decode(encoding)
-                    return text.encode(system_encoding)
-                    break  # 如果上面这句执行没报异常，说明是这种编码
-                except:
-                    pass
         return str(text)
-    except NameError:
-        # py3 的处理
-        return text.encode().decode("unicode-escape")
 
 
 def encryptData(data, key, mode=AES.MODE_CBC):
