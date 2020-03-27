@@ -1,8 +1,6 @@
 本目录是 Python 相关笔记
 
-# 目录
-
-> ### 原生内容
+# 原生内容
 >> [安装](./0.安装/)  
 >> [基础语法](./1.基础语法/)  
 >> [进阶语法](./2.进阶语法/)  
@@ -11,7 +9,7 @@
 >> [第三方模块](./5.第三方模块/)  
 >> [杂](./6.杂/)  
 
-> ### web开发
+# web开发
 >> [tornado](./tornado/)  
 >> [Django](./Django/)  
 >> [flask](./flask/)  
@@ -19,14 +17,13 @@
 
 >> [gevent](./gevent/)  
 >> [gunicorn](./gunicorn/)  
->> [WSGI](./WSGI.py)  
+>> [WSGI](./WSGI.py.md)  
 >> [微信公众号](./微信公众号/)  
 
-> ### 数据库
+# 数据库
 >> [redis](./5.第三方模块/redis.py)  
 >> [PyMongo](./5.第三方模块/MongoDB-pymongo.py)  
 >> [MongoEngine](./5.第三方模块/MongoDB-mongoengine.py)  
-
 >> [pandas](./5.第三方模块/pandas.py)  
 
 

@@ -218,6 +218,9 @@
             print('put %s to queue...' % value)
             q.put(value)
         lock.release()  # 释放锁
+        # 不想自己写 加锁、释放锁 的代码，可用 with
+        with lock:
+            pass  # 要执行的代码
 
     # 读数据进程执行的代码:
     def read(q):
@@ -232,6 +235,7 @@
     if __name__ == '__main__':
         manager = Manager()
         q = manager.Queue()  # 父进程创建Queue，并传给各个子进程
+        results = manager.dict()  # 可用于多进程传参的 dict, 因为 queue 类似于 list, 有些场景 queue 不够用。
         lock = manager.Lock()  # 初始化一把锁
         p = Pool()
         pw = p.apply_async(write, args=(q, lock))
