@@ -89,7 +89,8 @@ def page(file_path):
     text += '\r\n <META http-equiv="Content-Type" content="text/html; charset=utf-8"/>'
     # 对 markdown 文件，自动加载样式。其它文件显示原文。
     if not p or p.endswith(('/', '.md')):
-        text += '\r\n <!-- Markdeep: --><script src="/notes_web/markdeep.js" charset="utf-8"></script>'
+        t = os.path.getmtime(os.path.join(BASE_PATH, "notes_web/markdeep.js"))
+        text += '\r\n <!-- Markdeep: --><script src="/notes_web/markdeep.js?t=%s" charset="utf-8"></script>' % t
     else:
         text = text.replace('\n', '\n<br/>')
     return text

@@ -706,6 +706,7 @@ function unescapeHTMLEntities(str) {
         rp(/&ndash;/g, '\u2013').
         rp(/&mdash;/g, '---').
         rp(/&amp;/g, '&').
+        rp(/[\r]?\n[ ]+[\r]?\n/g, '\n\n').
         rp(/  \n/g, '  <br/>\n');
 }
 
