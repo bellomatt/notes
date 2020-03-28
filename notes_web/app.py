@@ -8,6 +8,7 @@ import sys
 import logging
 
 from bottle import route, run, static_file
+
 current_dir, _ = os.path.split(os.path.abspath(__file__))
 current_dir = current_dir or os.getcwd()  # 当前目录
 BASE_PATH = os.path.dirname(current_dir)  # 上一层目录，认为是项目源目录
@@ -19,8 +20,25 @@ if PY2:
 
 # 文件的编码尝试列表
 CODING_LIST = ["utf-8", 'gb18030', "gbk", 'big5']
-# 自动改编码的文件后缀列表
-CHANGE_EXT = ('.py', '.js', '.md', '.html', '.txt', '.java', '.cs', '.jsp', '.go', '.php', '.css', '.conf')
+# 压缩包的文件后缀列表
+ZIP_EXT = ('zip', 'rar', 'arj', 'z')
+# 自动改编码,且后缀名对应的编程语言
+LANGUAGE = {
+    'txt': 'plaintext', 'css': 'css', 'conf': 'yaml', 'sh': 'bash', 'cpp': 'cpp', 'c': 'c', 'h': 'cpp', 'cs': 'csharp',
+    'go': 'golang', 'http': 'http', 'https': 'https', 'java': 'java', 'jsp': 'java', 'js': 'javascript', 'json': 'json',
+    'lua': 'lua', 'makefile': 'makefile', 'mk': 'makefile', 'xml': 'xml', 'plist': 'xml', 'html': 'html',
+    'xhtml': 'html', 'perl': 'perl', 'php': 'php', 'py': 'python', 'scheme': 'scheme', 'sql': 'sql', 'yaml': 'yaml',
+}
+
+
+def get_ext(file_name):
+    """获取文件后缀名"""
+    file_name = file_name.strip()
+    p = file_name.lower()
+    _, ext = os.path.splitext(p)
+    if ext.startswith('.'):
+        return ext[1:]
+    return ext
 
 
 def read_file(file_path):
@@ -42,10 +60,12 @@ def read_file(file_path):
                 # 系统自动生成的无用文件
                 if file_name in ('.DS_Store', 'Thumbs.db', 'folder.ini',):
                     continue
+                show_file_name1 = file_name.replace('[', '【').replace(']', '】')
+                show_file_name2 = file_name.replace('(', '%28').replace(')', '%29')
                 if os.path.isdir(os.path.join(file_path, file_name)):
-                    folders.append("**[%s](./%s/)**" % (file_name, file_name))
+                    folders.append("**[%s](./%s/)**" % (show_file_name1, show_file_name2))
                 else:
-                    files.append("[%s](./%s)" % (file_name, file_name))
+                    files.append("[%s](./%s)" % (show_file_name1, show_file_name2))
             # 排序
             folders.sort()
             files.sort()
@@ -53,6 +73,7 @@ def read_file(file_path):
     # 文件找不到
     if not os.path.exists(file_path):
         return '没有您需要的页面!'
+    ext = get_ext(file_path)
     # 按不同编码尝试读取文件
     for encode in CODING_LIST:
         try:
@@ -60,7 +81,7 @@ def read_file(file_path):
             with open(file_path, 'r', encoding=encode) as f:
                 result = f.read()
             # 自动改编码
-            if result and encode != CODING_LIST[0] and file_path.lower().endswith(CHANGE_EXT):
+            if result and encode != CODING_LIST[0] and (ext == 'md' or ext in LANGUAGE):
                 logging.warning('修改文件编码： %s', file_path)
                 with open(file_path, 'w', encoding="utf-8") as f:
                     f.write(result)
@@ -81,14 +102,18 @@ def page(file_path):
     # 去掉参数
     if '?' in file_path:
         file_path = file_path[:file_path.index('?')]
-    p = file_path.lower()
+    ext = get_ext(file_path)
     # 压缩包，不能读
-    if p.endswith(('.zip', '.rar', '.arj', '.z')):
+    if ext in ZIP_EXT:
         return '压缩文件，无法打开'
     text = read_file(file_path)
-    text += '\r\n <META http-equiv="Content-Type" content="text/html; charset=utf-8"/>'
-    # 对 markdown 文件，自动加载样式。其它文件显示原文。
-    if not p or p.endswith(('/', '.md')):
+    # 对 markdown/编程 文件，自动加载样式。其它文件显示原文。
+    if not file_path or file_path.endswith(('/', 'md')) or ext in LANGUAGE:
+        # 高亮显示代码
+        if ext in LANGUAGE:
+            text = "```%s\r\n%s\r\n```\r\n" % (LANGUAGE.get(ext), text)
+        # 加载 markdown 样式
+        text += '\r\n <META http-equiv="Content-Type" content="text/html; charset=utf-8"/>'
         t = os.path.getmtime(os.path.join(BASE_PATH, "notes_web/markdeep.js"))
         text += '\r\n <!-- Markdeep: --><script src="/notes_web/markdeep.js?t=%s" charset="utf-8"></script>' % t
     else:
