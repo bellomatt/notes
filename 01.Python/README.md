@@ -10,15 +10,16 @@
 >> [杂](./6.杂/)  
 
 # web开发
->> [tornado](./tornado/)  
->> [Django](./Django/)  
->> [flask](./flask/)  
->> [CherryPy](./CherryPy/)  
+>> [WSGI](./Web/WSGI.md)  
+>> [Gevent](./Web/gevent/)  
+>> [gunicorn](./Web/gunicorn/)  
 
->> [gevent](./gevent/)  
->> [gunicorn](./gunicorn/)  
->> [WSGI](./WSGI.md)  
->> [微信公众号](./微信公众号/)  
+>> [fast api](./Web/fast_api/)  
+>> [tornado](./Web/tornado/)  
+>> [Django](./Web/Django/)  
+>> [flask](./Web/flask/)  
+>> [CherryPy](./Web/CherryPy/)  
+>> [微信公众号](./Web/微信公众号/)  
 
 # 数据库
 >> [redis](./5.第三方模块/redis.py)  

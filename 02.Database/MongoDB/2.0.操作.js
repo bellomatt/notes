@@ -58,6 +58,8 @@ mongo 是 MongoDB 自带的交互式 Javascript shell，用来对 Mongod 进行�
     // 以上的更新操作只会更新符合条件的一条记录, 设置 multi 可以全部更新
     // 注意：multi必须要与$set组合使用否则会报错
     db.users.update({name:"user1"}, {$set:{age:100, sex:0}}, {multi:true})
+    db.users.updateMany({}, {'$set':{age:100, sex:0}});  // 更新多行,相当于写了 {multi:true}
+
 
     // update() 有几个参数需要注意。
     db.集合名.update(criteria, objNew, upsert, mult)
@@ -223,6 +225,7 @@ mongo 是 MongoDB 自带的交互式 Javascript shell，用来对 Mongod 进行�
   (1) $all: 判断数组属性是否包含全部条件。
     db.users.insert({name:"user3", data:[1,2,3,4,5,6,7]})
     db.users.insert({name:"user4", data:[1,2,3]})
+    db.users.update({"序号" : { $ne : null }}, {$unset:{}}, {multi:true}); // 默认update更新一条，需更新多条用 {multi:true}
 
     db.users.find({data:{$all:[2,3,4]}})
     // 显示： { "_id" : ObjectId("4c47a133b48cde79c6780df0"), "name" : "user3", "data" : [ 1, 2, 3, 4, 5, 6, 7 ] }

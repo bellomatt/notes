@@ -21,7 +21,7 @@ if PY2:
 # 文件的编码尝试列表
 CODING_LIST = ["utf-8", 'gb18030', "gbk", 'big5']
 # 压缩包的文件后缀列表
-ZIP_EXT = ('zip', 'rar', 'arj', 'z')
+ZIP_EXT = ('zip', 'rar', 'arj', 'z', 'tar', 'tgz', 'gz', 'bz2')
 # 自动改编码,且后缀名对应的编程语言
 LANGUAGE = {
     'txt': 'plaintext', 'css': 'css', 'conf': 'yaml', 'sh': 'bash', 'cpp': 'cpp', 'c': 'c', 'h': 'cpp', 'cs': 'csharp',
