@@ -14,7 +14,7 @@ import logging
 
 __all__ = ('add', 'sub', 'to_string', 'to_time', 'to_datetime', 'to_date', 'to_timestamp', 'to_datetime_time',
            'datetime_time_to_str', 'is_dst', 'add_datetime_time', 'sub_datetime_time', 'get_datetime', 'get_week_range',
-           'get_month_range', 'get_month_list', 'get_time_string')
+           'get_month_range', 'get_month_list', 'get_time_string', 'calculate_age')
 
 DEFAULT_FORMAT = '%Y-%m-%d %H:%M:%S'  # 默认时间格式
 DEFAULT_DATE_FORMAT = '%Y-%m-%d'  # 默认日期格式
