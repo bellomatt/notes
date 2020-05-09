@@ -36,6 +36,7 @@
             git push --force origin myfeature # rebase 后，分支不能正常推时，需要强推上去
         12. git log  # 查看log
         13. git fetch origin <远程分支名称>:<本地分支名称>  # 在本地新建分支x，但是不会自动切换到该本地分支x，需要手动checkout
+        14. git cherry-pick abce00c8 # 只合并某个提交(其它提交的内容不合并,需要先checkout到被合并的分支上，后面一个参数是提交编码的前8位或者完整编码)
 
     常用命令：
         $ git init   # 初始化 git 仓库(需要先进入到仓库目录)

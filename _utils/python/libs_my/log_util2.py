@@ -24,6 +24,8 @@ LOG_MIN = 50  # 嵌套日志的最短长度，过短会导致无限递归截取�
 _FORMAT = '[%(asctime)s] [%(module)s.%(funcName)s:%(lineno)s] %(levelname)s: %(message)s'
 _LEVEL = logging.DEBUG if DEBUG else logging.INFO
 logging.basicConfig(level=_LEVEL, format=_FORMAT)
+# 数据库日志的日志级别: DEBUG=10, INFO=20, WARNING=30, ERROR=40, CRITICAL=50
+DB_LOG_LEVEL = int(os.environ.get('DB_LOG_LEVEL') or 30)
 
 
 def short_log(value, length=None):
@@ -126,13 +128,32 @@ class StringFilter(logging.Filter):
 class DbHandler(logging.Handler):
     """写入数据库的日志记录"""
 
-    def __init__(self):
-        logging.Handler.__init__(self)
-        # from models import Log  # 下面举一个数据库的范例
-        self.db = Log
-
     def emit(self, record):
-        self.db.add(record)
+        """日志输出"""
+        # 存储不被截取的log消息
+        obj = {
+            'name': record.name,  # logger 名称
+            'level': record.levelno,  # 日志级别，跟 logging 的级别一样的数值
+            'message': record.getMessage(),  # 日志内容
+            'created_at': datetime.datetime.fromtimestamp(record.created),
+
+            'file_path': record.pathname,  # 写日志的代码所在文件的路径
+            'module': record.module,  # 写日志的代码所在的 module
+            'func_name': record.funcName,  # 写日志的代码所在的 函数名
+            'line_no': record.lineno,  # 写日志的代码所在文件的 行数
+            'thread_name': record.threadName,  # 写日志的代码所在的 线程名
+            'process_name': record.processName,  # 写日志的代码所在的 进程名
+
+            'exc_info': str(record.exc_info) if record.exc_info else None,  # 抛出的Exception
+            'exc_text': str(record.exc_text) if record.exc_text else None,  # 错误信息的堆栈
+            'stack_info': str(record.stack_info) if record.stack_info else None,
+        }
+        if record.exc_info:
+            obj['exc_text'] = obj['exc_text'] or traceback.format_exc()
+        if record.levelno >= 40:
+            obj['f_locals'] = get_locals(record.pathname)  # 出错时的各变量key/value
+        db = get_db()  # 获取数据库连接，依赖外部
+        db.log.insert(obj)
 
 # 数据库记录日志的 Log 类范例  ##### start #####
 import types
@@ -141,7 +162,44 @@ from mongoengine import Document
 from mongoengine.fields import IntField, StringField, DictField, DateTimeField
 
 # 记录各变量时，排除的类型
-NotRecordTypes = (types.FunctionType, types.LambdaType, types.ModuleType, type(Document))
+NotRecordTypes = (types.FunctionType, types.LambdaType, types.ModuleType, type(Document), type)
+
+
+def get_locals(pathname):
+    """获取报错时的所有变量值
+    :param pathname:报错logger所在文件名
+    """
+    # 获取报错时的变量
+    t, v, tb = sys.exc_info()
+    frame = tb.tb_frame
+    while frame and hasattr(frame, 'f_back') and pathname != frame.f_code.co_filename:
+        frame = frame.f_back
+    if not frame:
+        return {}
+
+    # 获取打印 logger 行的所有变量
+    f_locals = getattr(frame, 'f_globals', {})
+    f_locals.update(getattr(frame, 'f_locals', {}))
+    result = {}
+    for k, v in f_locals.items():
+        if k.startswith('__') or type(v) in NotRecordTypes:
+            continue
+        value = repr(v)
+        if value.startswith(('<class ', '<built-in ')):
+            continue
+        result[k] = value
+    return result
+
+
+''' 使用 model 的方式
+class DbHandler(logging.Handler):
+    """写入数据库的日志记录"""
+
+    def emit(self, record):
+        """日志输出"""
+        # 存储不被截取的log消息
+        msg = getattr(record, 'old_msg', record.getMessage())
+        Log.add(record, msg)
 
 
 class Log(Document):
@@ -189,23 +247,15 @@ class Log(Document):
             obj.exc_text = str(record.exc_text) if record.exc_text else None
             if record.exc_info:
                 obj.exc_text = obj.exc_text or traceback.format_exc()
-                # 获取报错时的变量
-                t, v, tb = sys.exc_info()
-                frame = tb.tb_frame
-                while frame and hasattr(frame, 'f_back') and record.pathname != frame.f_code.co_filename:
-                    frame = frame.f_back
-                if frame:
-                    # f_locals = getattr(frame, 'f_globals', {})  # 全局变量内容太多，而且绝大多数都是用不到
-                    f_locals = getattr(frame, 'f_locals', {})
-                    f_locals = {k: repr(v) for k, v in f_locals.items()
-                                if not k.startswith('__') and type(v) not in NotRecordTypes}
-                    obj.f_locals = f_locals
+            if record.levelno >= 40:
+                obj.f_locals = get_locals(record.pathname)
             obj.stack_info = str(record.stack_info) if record.stack_info else None
             obj.save(force_insert=True)
         # 避免写日志的错误影响其它代码
         except Exception as e:
             print('数据库日志记录异常:', e)
             print(traceback.format_exc())
+'''
 # 数据库记录日志的 Log 类范例  ##### end #####
 
 
@@ -220,7 +270,7 @@ string_filter = StringFilter()
 # 数据库日志(日志内容的长度不截取)
 db_handler = DbHandler()
 db_handler.setFormatter(formatter)
-db_handler.setLevel(logging.ERROR)
+db_handler.setLevel(DB_LOG_LEVEL)
 logger.addHandler(db_handler)
 # 日志文件
 filename = os.path.join(file_path, 'run.log')

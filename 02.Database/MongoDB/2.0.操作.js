@@ -492,6 +492,7 @@ mongo 是 MongoDB 自带的交互式 Javascript shell，用来对 Mongod 进行�
     dropIndex() 删除索引
     dropIndexes() 删除全部索引(不包括 _id 等系统索引)
     reIndex() 重建索引
+	db.COLLECTION_NAME.getIndexes(); 查看索引
 
     db // 显示： test
     show collections

@@ -202,6 +202,10 @@ pymongo 提供原生的 MongoDB 操作
     # 子表的查询
     db.集合名.find({"classifyid":"test1", "keyword.0.name":"test2"})
 
+  9. 分批读取数据 batch_size
+	# 一次读取太多内容，会导致超时报错。可以分多次读取。
+    for u in db.users.find({"name" : "user"}, ["name"]).limit(2000).batch_size(50): print(u)
+
 
   查询符
     $lt         小于
