@@ -15,6 +15,8 @@ import uuid
 import logging
 from logging.handlers import TimedRotatingFileHandler as FileHandler
 
+from flask import request
+
 # 读取外部配置
 DEBUG = os.environ.get('DEBUG') in ('True', 'true', '1')  # 是否 debug 模式
 LOG_PARAM_LEN = int(os.environ.get('LOG_PARAM_LEN') or 1000)  # 日志里各参数的最大长度限制
@@ -148,10 +150,10 @@ class DbHandler(logging.Handler):
             'exc_text': str(record.exc_text) if record.exc_text else None,  # 错误信息的堆栈
             'stack_info': str(record.stack_info) if record.stack_info else None,
         }
-        if record.exc_info:
-            obj['exc_text'] = obj['exc_text'] or traceback.format_exc()
         if record.levelno >= 40:
             obj['f_locals'] = get_locals(record.pathname)  # 出错时的各变量key/value
+        if record.exc_info or obj.get('f_locals'):
+            obj['exc_text'] = obj['exc_text'] or traceback.format_exc()
         db = get_db()  # 获取数据库连接，依赖外部
         db.log.insert(obj)
 
@@ -171,6 +173,8 @@ def get_locals(pathname):
     """
     # 获取报错时的变量
     t, v, tb = sys.exc_info()
+    if tb is None:
+        return {}
     frame = tb.tb_frame
     while frame and hasattr(frame, 'f_back') and pathname != frame.f_code.co_filename:
         frame = frame.f_back
@@ -184,11 +188,68 @@ def get_locals(pathname):
     for k, v in f_locals.items():
         if k.startswith('__') or type(v) in NotRecordTypes:
             continue
-        value = repr(v)
-        if value.startswith(('<class ', '<built-in ')):
+        if repr(v).startswith(('<class ', '<built-in ')):
             continue
-        result[k] = value
+        # request 请求，记录详情
+        if v is request:
+            try:
+                result[k] = dict(method=request.method, url=request.full_path, headers=dict(request.headers),
+                                 ip=request.headers.getlist("X-Forwarded-For") or request.remote_addr,
+                                 body=request.data.decode() if request.data else None, endpoint=request.endpoint
+                                 )
+            except:
+                result[k] = repr(v)
+        else:
+            result[k] = repr_value(v)
     return result
+
+
+def repr_value(value):
+    """
+    格式化变量，以便数据库存储
+    其中 list,tuple,set,dict 等类型需要递归转变
+    :param {任意} value 将要被格式化的值
+    :return {type(value)}: 返回原本的参数类型(list,tuple,set,dict等类型会保持不变)
+    """
+    if value is None:
+        return None
+    # str 类型的
+    elif isinstance(value, str):
+        return value
+    elif isinstance(value, (bytes, bytearray)):
+        return repr(value)
+    # 考虑是否需要转成字符串的类型
+    elif isinstance(value, (bool, int, float, complex)):
+        return value
+    # time, datetime 类型转成字符串,需要写格式(不能使用 json.dumps,会报错)
+    elif isinstance(value, time.struct_time):
+        return time.strftime('%Y-%m-%d %H:%M:%S', value)
+    elif isinstance(value, datetime.datetime):
+        return value.strftime('%Y-%m-%d %H:%M:%S')
+    elif isinstance(value, datetime.date):
+        return value.strftime('%Y-%m-%d')
+    elif isinstance(value, decimal.Decimal):
+        return str(value)
+    elif isinstance(value, uuid.UUID):
+        return value.hex
+    # list,tuple,set 类型,递归转换
+    elif isinstance(value, (list, tuple, set)):
+        arr = [repr_value(item) for item in value]
+        # 尽量不改变原类型
+        if isinstance(value, list):  return arr
+        if isinstance(value, tuple): return tuple(arr)
+        if isinstance(value, set):   return set(arr)
+    # dict 类型,递归转换(字典里面的 key 也会转成 unicode 编码)
+    elif isinstance(value, dict):
+        this_value = {}  # 不能改变原参数
+        for key1, value1 in value.items():
+            # 字典里面的 key 也转成 unicode 编码
+            key1 = repr_value(key1)
+            this_value[key1] = repr_value(value1)
+        return this_value
+    # 其它类型
+    else:
+        return repr(value)
 
 
 ''' 使用 model 的方式
@@ -232,6 +293,9 @@ class Log(Document):
         :param record: logging record
         """
         try:
+            # 过滤 bad request 请求日志
+            if record.name == "werkzeug" and record.module == "_internal" and record.funcName == "_log":
+                return
             obj = cls()
             obj.name = record.name
             obj.level = record.levelno
@@ -245,10 +309,10 @@ class Log(Document):
             obj.created_at = datetime.datetime.fromtimestamp(record.created)
             obj.exc_info = str(record.exc_info) if record.exc_info else None
             obj.exc_text = str(record.exc_text) if record.exc_text else None
-            if record.exc_info:
-                obj.exc_text = obj.exc_text or traceback.format_exc()
             if record.levelno >= 40:
                 obj.f_locals = get_locals(record.pathname)
+            if record.exc_info or obj.f_locals:
+                obj.exc_text = obj.exc_text or traceback.format_exc()
             obj.stack_info = str(record.stack_info) if record.stack_info else None
             obj.save(force_insert=True)
         # 避免写日志的错误影响其它代码
