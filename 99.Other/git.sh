@@ -37,6 +37,7 @@
         12. git log  # 查看log
         13. git fetch origin <远程分支名称>:<本地分支名称>  # 在本地新建分支x，但是不会自动切换到该本地分支x，需要手动checkout
         14. git cherry-pick abce00c8 # 只合并某个提交(其它提交的内容不合并,需要先checkout到被合并的分支上，后面一个参数是提交编码的前8位或者完整编码)
+        15. git rebase master # 会将当前分支(develop)的提交复制到指定的分支(master)之上。类似 merge
 
     常用命令：
         $ git init   # 初始化 git 仓库(需要先进入到仓库目录)
@@ -97,6 +98,7 @@
         $ git config --list  # 查看全局设置
         $ git fsck  # 检查损坏情况
         $ git gc  # 清理无用数据
+        $ git rebase [startpoint] [endpoint] --onto [branchName]  # 将当前分支的指定区间(startpoint ~ endpoint)的几个提交复制到 branchName 分支上
 
         在 Git 中 "HEAD" 表示仓库中最后一个提交版本, "HEAD^" 是倒数第二个版本, "HEAD~2" 、"HEAD~4"则是更老的版本。
 

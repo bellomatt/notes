@@ -3,15 +3,15 @@
 """
 公用函数(html字符串处理)
 Created on 2015/1/19
-Updated on 2019/1/18
+Updated on 2020/9/21
 @author: Holemar
 """
 import re
 
-__all__=('to_html', 'to_text', 'remove_htmlTag')
+__all__ = ('to_html', 'to_text', 'remove_html')
 
 
-def to_html(sour, *args, **kwargs):
+def to_html(sour):
     """
     转换字符串成 Html 页面上显示的编码
     :param {string} sour: 需要转换的字符串
@@ -30,7 +30,8 @@ def to_html(sour, *args, **kwargs):
     sour = sour.replace("+", "&#43;")
     return sour
 
-def to_text(sour, *args, **kwargs):
+
+def to_text(sour):
     """
     转换字符串由 Html 页面上显示的编码变回正常编码(以上面的方法对应)
     :param sour: 需要转换的字符串
@@ -41,43 +42,36 @@ def to_text(sour, *args, **kwargs):
     # 先转换百分号
     sour = sour.replace("&#37;", "%")
     # 小于号,有三种写法
-    sour = sour.replace("&lt;", "<")
-    sour = sour.replace("&LT;", "<")
-    sour = sour.replace("&#60;", "<")
+    sour = sour.replace("&lt;", "<").replace("&LT;", "<").replace("&#60;", "<")
     # 大于号,有三种写法
-    sour = sour.replace("&gt;", ">")
-    sour = sour.replace("&GT;", ">")
-    sour = sour.replace("&#62;", ">")
+    sour = sour.replace("&gt;", ">").replace("&GT;", ">").replace("&#62;", ">")
     # 单引号
-    sour = sour.replace("&#39;", "'")
-    sour = sour.replace("&#43;", "+")
-    # 转换换行符号
+    sour = sour.replace("&#39;", "'").replace("&#43;", "+")
+    # 换行符换行: <br/> ==> 换行符
     sour = re.sub(r'\n?<[Bb][Rr]\s*/?>\n?', '\n', sour)
     # 双引号号,有三种写法
-    sour = sour.replace("&quot;", '"')
-    sour = sour.replace("&QUOT;", '"')
-    sour = sour.replace("&#34;", '"')
+    sour = sour.replace("&quot;", '"').replace("&QUOT;", '"').replace("&#34;", '"')
     # 空格,只有两种写法, &NBSP; 浏览器不承认
-    sour = sour.replace("&nbsp;", " ")
-    sour = sour.replace("&#160;", " ")
+    sour = sour.replace("&nbsp;", " ").replace("&#160;", " ")
     # & 符号,最后才转换
-    sour = sour.replace("&amp;", "&")
-    sour = sour.replace("&AMP;", "&")
-    sour = sour.replace("&#38;", "&")
+    sour = sour.replace("&amp;", "&").replace("&AMP;", "&").replace("&#38;", "&")
     return sour
 
-def remove_htmlTag(text, *args, **kwargs):
+
+def remove_html(text):
     """
     清除HTML标签
     :return {string}:清除标签后的内容
     @example remove_htmlTag("<div>haha</div>") 返回: "haha"
     """
     # 清除注释
-    text = text.strip().replace("<!--.*-->", "")
+    text = text.strip().replace("<!--.*?-->", "")
+    # 样式 内容删除
+    text = re.sub(r'<style>.*?</style>', '', text)
+    # java script 内容删除
+    text = re.sub(r'<script.*?</script>', '', text)
     # 标题换行: </title> ==> 换行符
     text = re.sub(r'</[Tt][Ii][Tt][Ll][Ee]>', '\n', text)
-    # 换行符换行: <br/> ==> 换行符
-    text = re.sub(r'\n?<[Bb][Rr]\s*/?>\n?', '\n', text)
     # tr换行: </tr> ==> 换行符
     text = re.sub(r'</[Tt][Rr]>', '\n', text)
     # html標籤清除
@@ -85,4 +79,3 @@ def remove_htmlTag(text, *args, **kwargs):
     # 转换字符串由 Html 页面上显示的编码变回正常编码
     text = to_text(text)
     return text.strip()
-

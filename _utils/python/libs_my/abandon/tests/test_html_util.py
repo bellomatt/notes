@@ -17,9 +17,14 @@ class TestXhtml(unittest.TestCase):
     # html 测试
     def test_html(self):
         logging.info(u'测试 html_util')
-        assert html_util.to_html("  ") == '&nbsp;&nbsp;'
-        assert html_util.to_text('&nbsp;xx&nbsp;') == " xx "
-        assert html_util.remove_htmlTag("x<div>haha</div>x")=="xhahax"
+        self.assertEqual(html_util.to_html("  "), '&nbsp;&nbsp;')
+        self.assertEqual(html_util.to_text('&nbsp;xx&nbsp;'), " xx ")
+        self.assertEqual(html_util.remove_html("x<div>haha</div>x"), "xhahax")
+        self.assertEqual(html_util.remove_html("""x<div>haha</div>x<!--点点滴滴-->啊啊
+        <style>body {margin: 0;}</style>
+        <script type="text/javascript" src="/manifest.2be1e4cb32664bc84cf0.js"></script>
+        <script type="text/javascript"> function ...</script>"""),
+                         "xhahax啊啊")
 
 
 if __name__ == "__main__":

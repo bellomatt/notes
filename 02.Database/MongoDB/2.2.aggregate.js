@@ -144,6 +144,15 @@ options 操作符介绍:
     {"status": 11}
 
 
+9. 相当于 distinct 操作
+    db.collection.aggregate([
+        {$match:{status:1}}, // 查询条件
+        {$group:{_id:"$mail_from"}},  // distinct 字段: mail_from
+        {$sort:{_id:1}}
+    ]);
+
+
+
 options 操作符
 1. 性能分析, explain
     db.collection.explain().aggregate([  // explain() 提供性能分析
@@ -188,6 +197,23 @@ options 操作符
         {$project: { count: 1,  qty: 1, 日期: { $toUpper: "$_id" }, _id: 0 } }
     ])
 
+# 查询重复数据
+    # 查询出表格 message 里面 account_id,subject,received_at,channel 这四个字段都完全一样的数据出来
+    bello_capture = db.getSiblingDB('acqui_production');
+    var result = []; // 保存结果
+    bello_capture.getCollection("message").aggregate([
+        {'$match': {"subject":{'$ne': null}, "received_at":{'$ne': null}, "channel":{'$ne': null} }}, // 前置过滤条件
+        {'$group':{
+            _id:{account_id:'$account_id',subject:'$subject',received_at:'$received_at',channel:'$channel'},  // 合并条件(多个字段联合的重复)
+            count:{'$sum':1},
+            dups:{'$push':{_id:'$_id',uid:'$uid',_created:'$_created',mail_from:'$mail_from',mail_to:'$mail_to'}}
+        }},
+        {'$match':{count:{'$gt':1}}},  // 后置过滤条件
+        {'$limit': 1000}  // 限制结果长度，避免超过之后报内存溢出错误
+    ]， {allowDiskUse: true}  // 当内存溢出时，使用磁盘空间，避免报错
+    ).forEach(function(it){ result[result.length]=it; }); // 添加结果
+    printjson(result); // 打印结果
+
 
 # 删除重复的数据
     # mongo3x的版本
@@ -195,8 +221,8 @@ options 操作符
         {$group:{
             _id:{content:'$content',endTime:'$endTime',startTime:'$startTime'},
             count:{$sum:1},
-            dups:{$addToSet:'$_id'}}
-        },
+            dups:{$addToSet:'$_id'}
+        }},
         {$match:{count:{$gt:1}}}
     ]).forEach(function(it){
         it.dups.shift();
