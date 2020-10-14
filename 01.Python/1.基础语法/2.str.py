@@ -465,3 +465,38 @@ str, unicode 对象的 encode 和 decode 方法
         print repr(u'中国') # 打印：u'\u4e2d\u56fd'
 
     总结：凡是报错信息中出现的错误包含“ASCII”，就是没有指定汉字编码的问题。
+
+
+整理字符串输入
+  整理用户输入的问题在编程过程中极为常见。可以使用多次替换，也可以使用正则替换，下面介绍更简便的替换方式。
+  1. py2 的写法
+    import string
+    m = string.maketrans('123\n\t', 'abc-+')  # 建立映射表，将字符串中含有的'1','2','3','\n','\t'分别替换为'a','b','c','-','+'
+    s = '54321\n0\t123456789'  # 转换前的字符串
+    print(type(m))  # 打印： <type 'str'>
+    print(m,)  # 这个值挺长的，自己打印出来看看就好了。这里多加一个逗号是为了转成tuple类型，以便查看。
+    print(s.translate(m))  # 打印： 54cba-0+abc456789
+    print(s.translate(m, '45\r'))  # 后一个参数是要去掉的字母，可见字母'4','5'都已经去掉。打印： cba-0+abc6789
+
+  2. py3 的写法
+    m1 = str.maketrans('123\n\t', 'abc-+')  # 建立映射表，将字符串中含有的'1','2','3','\n','\t'分别替换为'a','b','c','-','+'
+    m2 = str.maketrans('123\n\t', 'abc-+', '45\r')  # 第三个参数是要去掉的字母，这里指去掉'4','5','\r'。第三参数可以不写。
+    s = '54321\n0\t123456789'  # 转换前的字符串
+    print(type(m1))  # 打印： <class 'dict'>
+    print(m1)  # 打印： {49: 97, 50: 98, 51: 99, 10: 45, 9: 43}
+    print(m2)  # 打印： {49: 97, 50: 98, 51: 99, 10: 45, 9: 43, 52: None, 53: None, 13: None}
+    print(s.translate(m1))  # 打印： 54cba-0+abc456789
+    print(s.translate(m2))  # 打印： cba-0+abc6789
+
+    # 2.X 版本中 string 类型和 str, unicode 类型大量方法是重复的，所以 3.X 版本不提倡使用 string 模块中与 str 重复的方法。
+  3. 兼容 py2 与 py3 的写法
+    user_input = u"This\nstring has\tsome whitespaces...\r\n"  # py2时，这个必须是 unicode，否则会报错
+    character_map = {
+        ord('\n'): u' ',  # py2时，这个 value 必须是 unicode，否则会报错
+        ord('\t'): u' ',  # 要替换的字符
+        ord('\r'): None,  # 要删除的字符
+    }
+    print(user_input.translate(character_map))  # This string has some whitespaces...
+
+
+
