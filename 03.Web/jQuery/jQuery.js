@@ -92,6 +92,18 @@
      get(N) 取出第 N 个元素
      index(element 或 jQuery 对象) 用来查看某元素在选取结果中的下标，由 0 起算。元素不在群组时传回 -1。
 
+  11)操作函数
+     $.parent(expr)   找父亲节点，可以传入expr进行过滤，比如$("span").parent()或者$("span").parent(".class")
+     $.parents(expr)  类似于 jQuery.parents(expr),但是是查找所有祖先元素，不限于父元素
+     $.children(expr) 返回所有子节点，这个方法只会返回直接的孩子节点，不会返回所有的子孙节点
+     $.contents()     返回下面的所有内容，包括节点和文本。这个方法和children()的区别就在于，包括空白文本，也会被作为一个jQuery对象返回，children()则只会返回节点
+     $.prev()         返回上一个兄弟节点，不是所有的兄弟节点
+     $.prevAll()      返回所有之前的兄弟节点
+     $.next()         返回下一个兄弟节点，不是所有的兄弟节点
+     $.nextAll()      返回所有之后的兄弟节点
+     $.siblings()     返回兄弟姐妹节点，不分前后
+     $.find(expr)     跟 $.filter(expr)完全不一样。$.filter()是从初始的jQuery对象集合中筛选出一部分，而 $.find()的返回结果，不会有初始集合中的内容，比如$("p").find("span"),是从p元素开始找,等同于$("p span").
+
 
 3. 选择含有特殊字符的元素:
     如：
