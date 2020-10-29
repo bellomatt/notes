@@ -92,6 +92,10 @@
      get(N) 取出第 N 个元素
      index(element 或 jQuery 对象) 用来查看某元素在选取结果中的下标，由 0 起算。元素不在群组时传回 -1。
 
+     html()用为读取和修改元素的HTML标签。对应原生js中的innerHTML。
+     text()用来读取或修改元素的纯文本内容。对应原生js中的innerText。text()方法不能使用在表单元素上。
+     val()用来读取或修改表单元素的"value"值，只能使用在表单元素上。
+
   11)操作函数
      $.parent(expr)   找父亲节点，可以传入expr进行过滤，比如$("span").parent()或者$("span").parent(".class")
      $.parents(expr)  类似于 jQuery.parents(expr),但是是查找所有祖先元素，不限于父元素
